@@ -1,0 +1,137 @@
+all cycles in fast cycles
+
+audio:
+	play ch3 at 2097152/114 = ~18396Hz = one sample per 114 cycles
+	one line is 228 cycles so it plays one byte (two samples) every line.
+	When each sample is played, it must be modulated
+	using a combination of the available volume controls:
+		The actual value, between 0 and 15
+		The master volume for each output channel, between 0 and 7
+	Do they combine linearly? ie. 3/16 actual * 3/8 master = 9/128?
+
+	So upkeep for audio is volume adjust every half a line and new sample
+	every line, including during vblank (vblank is 10 lines).
+
+palettes:
+	Update palettes each line during hblank or OAM search.
+	Total time: at most 142 cycles, less if sprites or window present on prev line.
+	But we need to spend probably 6 cycles of that updating the audio volume at the correct time.
+	So actual limit is 136.
+	We only need to update background palettes.
+	Quick time estimate:
+		ld A, [HL+]
+		ld [C], A
+		is 4 cycles/byte
+		(abusing SP isn't any better)
+		so we have 256 cycles for an entire palette swap. too long.
+
+		We can update half of the palettes each cycle.
+
+	Palette data compression:
+		Instead of storing a whole 4 palettes for each line change,
+		we store 4x 2 bytes indicating a palette number. Then we have a seperate list of
+		all unique palettes used by the program.
+		This would be loaded into RAM.
+
+tile map:
+	OLD:
+		Using DMA, we can update 16 bytes/line for non-vblank period at minimal cost
+		of 16 cycles/hblank. This gives us 16 * 144 = 2304 bytes per frame, which is easily
+		enough to rewrite entire on-screen tile map (18 rows * 2 banks = 1152 bytes because of how rows have
+		to be grouped).
+		The DMA setup will be annoying, because we need to finish early rows in both banks before
+		we reach them. So our best bet is row 1 bank 0, row 1 bank 1, row 2 bank 0, etc. so each DMA
+		is individual, not automatic. That accounts for 18 rows * 2 banks * 2 rounds/row * 1 line/round
+		= 72 lines.
+	NEW:
+		We can't afford any DMA during hblank as we simply can't spare 16 whole cycles.
+		Instead, we'll have to update the map during vblank.
+		vblank lasts 2280 cycles, of which we have 10 long audio updates and 10 short ones.
+		Short ones are 3 cycles:
+			ld A, R
+			ld [C], A
+		Long ones will need to load next sample, next pair of vols (put the latter in R)...
+		estimate 20 cycles.
+		Then left over time is:
+			2280 - 20*10 - 4*10 = 2040
+		We need to use 1152 of this to copy background map, leaving 888.
+
+tile data:
+	OLD:
+		During vblank, we can spend most of our time in DMA but need to pause to upkeep audio 2-3 times.
+		Let's assume it takes ~16 cycles each time. That leaves us with:
+		2280 - 16*3 = 2232
+		which rounds down to 139 rounds, which is 139 tiles written. Round down to 128 to give us
+		leeway and make it replacing a quarter of tiles per frame.
+	NEW:
+		We have 888 cycles to work with. Assume it takes ~16 cycles to set up DMA, let's aim
+		for 50 tiles able to be DMA'd in one go, or less (with one tile less per independent DMA).
+		This leaves us with 88 cycles of slack just in case.
+
+	Compression:
+		Instead of 50 every frame (huge amount of rom!), we allow frame data to specify a load
+		of up to 50 tiles from ROM, into an arbitrary tile area.
+		eg. "load N tiles from (rom bank, offset) to (vram bank, offset)"
+		Could allow multiple runs. Would need to validate to ensure it doesn't run over time.
+
+left over cycles:
+	Not counting the slack at the end of each vblank, we have 86 cycles/line.
+	As above, let's estimate 20 of those must be spent on audio upkeep.
+	Then the total time we have to:
+		* Decide the next frame
+		* Decode the next frame into RAM
+		* Anything else
+	is 66*144 = 9504/frame
+
+ROM usage:
+	audio: ~1 bytes/sample * 308 samples/frame = 308 bytes/frame.
+	In one bank, we can hold 16384 / 308b/f = 53.19 frames = ~0.89s
+	This is 53.44 banks/min. 3min audio: 160 banks. 5min audio: 268 banks.
+
+	tile data: 1024 tiles/bank. Probably only need 1-2 banks.
+
+	palette data: 2048 palettes/bank. Probably only need 1 bank.
+
+	tile and palette map:
+		Ideally packed, each frame is:
+			21*19 tiles * 2b/tile + 4 palettes/line * 2b/palette * 144 lines = 798b + 1152b = 1950b
+		which can fit 4 frames/bank.
+		However, to facilitate DMA, each row needs to have 11b of junk on the end.
+		With junk included:
+			32*19 tiles * 2b/tile = 1216 + previous for palette = 2368 which is only 3 frames/bank.
+		So we need to pack the frame data somehow.
+		Option 1: copy into RAM.
+			Takes ~6 cycles/byte * 798b = 4788.
+			We have ~9k of cycle time left, so this is feasible.
+		Option 2: stick palettes into unused part
+			This makes perfect use of the space, and doesn't add much complexity/time to
+			the existing palette decompression routine. This is a better option.
+			Let's say the first set of 4 palettes and the first one of the next set go in there.
+			This junk will be written to VRAM but it doesn't matter.
+			This still leaves 1 byte/line unused which costs us 19 bytes, but that'll fit.
+			Except we have one more row than set of 8 lines due to scrolling,
+			so this all gets fucked up. Simpler to go with option 1.
+		Also +1 byte which holds scroll values, 0-7 in each direction.
+		Also a list of tile load orders, a few bytes each.
+
+	So we can pack 8 frames in a bank, so with ~200 banks we have ~1600 unique frames.
+
+	other stuff:
+		flow control deciding what frames to show and when, loops, etc. unlikely to need a whole
+		bank.
+
+ALTERNATE:
+audio: as above
+tile data:
+	By using DMA for all of vblank (being careful to break in time for audio):
+		2280 - ~16*10 in overhead of audio handling = 2120
+	and two rounds of DMA during each h-blank + OAM, leaving 110 cycles:
+		32 * 144 = 4608
+	this gives us 6728 bytes to write.
+	We only need to write 18*20*16 = 5760 to write a new tile data for every visible tile.
+	So we can re-write every tile on screen over the course of a frame
+	(with the top half of screen in vram bank 0 and the bottom in bank 1). With room to spare.
+	But we can't do it while only doing one round of DMA per line (ie. using hblank DMA),
+	that only gives us 4424. So we can only write 3 palettes per line.
+
+	Rejected as not interesting enough :P
