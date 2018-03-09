@@ -81,6 +81,9 @@ frame data:
 				1, 44 (second source starts at 300)
 				1, 254 (dest bank 1, index starts at 254)
 				2 (two tiles to copy)
-			NOTE: Across all load orders, the total number of tiles written cannot be > 128.
+			NOTE: There is a timing limit here based on both the number of load orders and
+			the number of tiles. The total number of tiles + the number of load orders must be <= 51.
+			For example, you can do 50 tiles in one load order,
+			or 49 spread over two, or 48 spread over three, etc.
 		The remaining bytes up to 2048 are unused padding
 			You can calculate how many bytes to use as: 96 - <number of load orders> * 5
