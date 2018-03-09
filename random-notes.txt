@@ -84,9 +84,9 @@ left over cycles:
 	is 66*144 = 9504/frame
 
 ROM usage:
-	audio: ~1 bytes/sample * 308 samples/frame = 308 bytes/frame.
-	In one bank, we can hold 16384 / 308b/f = 53.19 frames = ~0.89s
-	This is 53.44 banks/min. 3min audio: 160 banks. 5min audio: 268 banks.
+	audio: ~1 bytes/sample * 18396 samples/sec = 18396b/sec
+	In one bank, we can hold 16384b / 18396b/sec = ~0.89sec
+	This is 67.37 banks/min. 3min audio: 202 banks. 5min audio: 336 banks.
 
 	tile data: 1024 tiles/bank. Probably only need 1-2 banks.
 
