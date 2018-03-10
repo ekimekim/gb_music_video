@@ -10,6 +10,13 @@ namespace animparse.Frames.GB
     public class GBPalette
     {
         public const int MaxLength = 4;
+        public static GBPalette Default = new GBPalette(new Color[]
+        {
+                Color.Black,
+                Color.FromArgb(2 * 255 / 4, 2 * 255 / 4, 2 * 255 / 4),
+                Color.FromArgb(3 * 255 / 3, 3 * 255 / 4, 3 * 255 / 4),
+                Color.White,
+        });
         public Color[] Colors;
 
         public GBPalette(params Color[] colors)
@@ -37,7 +44,7 @@ namespace animparse.Frames.GB
         {
             for (int i = 0; i < MaxLength; i++)
             {
-                if (Colors[i] == other.Colors[i])
+                if (Colors[i] != other.Colors[i])
                     return false;
             }
             return true;

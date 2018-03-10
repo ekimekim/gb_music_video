@@ -17,7 +17,7 @@ namespace animparse.Frames
         {
             for (int i = 0; i < PaletteData.Count; i++)
             {
-                if (PaletteData[i].Match(palette))
+                if (palette.Match(PaletteData[i]))
                     return i;
             }
 
@@ -29,14 +29,14 @@ namespace animparse.Frames
 
         public int UpsertTexture(GBTexture texture, List<int> pushedTextures)
         {
-            for (int i = 0; i < PaletteData.Count; i++)
+            for (int i = 0; i < TextureData.Count; i++)
             {
-                if (TextureData[i].Match(texture))
+                if (texture.Match(TextureData[i]))
                     return i;
             }
 
             TextureData.Add(texture);
-            var index = PaletteData.Count - 1;
+            var index = TextureData.Count - 1;
             pushedTextures.Add(index);
             return index;
         }
