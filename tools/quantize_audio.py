@@ -2,7 +2,7 @@
 import sys
 from itertools import count
 
-values = {x * y: (x, y) for x in range(8) for y in range(16)}
+values = {(x+1) * (y - 7.5) + 60: (x, y) for x in range(8) for y in range(16)}
 ceil = max(values)
 
 def main(asm_path, first_bank=1):
