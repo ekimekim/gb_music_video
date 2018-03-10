@@ -12,6 +12,8 @@ INCLUDES := $(wildcard include/*.asm)
 TESTS := $(wildcard tests/*.py)
 AUDIO := music.mp3
 
+FIXARGS := -v -C -m 0x1a 
+
 all: build/release/rom.gb tests/.uptodate
 
 tests/.uptodate: $(TESTS) tools/unit_test_gen.py $(DEBUGOBJS)
@@ -35,11 +37,11 @@ build/release/%.o: %.asm $(INCLUDES) build/release
 build/debug/rom.gb: $(DEBUGOBJS)
 # note padding with 0x40 = ld b, b = BGB breakpoint
 	rgblink -n $(@:.gb=.sym) -o $@ -p 0x40 $^
-	rgbfix -v -p 0x40 $@
+	rgbfix -p 0x40 $(FIXARGS) $@
 
 build/release/rom.gb: $(RELEASEOBJS)
 	rgblink -n $(@:.gb=.sym) -o $@ $^
-	rgbfix -v -p 0 $@
+	rgbfix -p 0 $(FIXARGS) $@
 
 build/debug build/release:
 	mkdir -p $@
