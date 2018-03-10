@@ -16,8 +16,8 @@ Start::
 	ld A, %10000000
 	ld [SoundControl], A
 
-	; Set volume to 7 both channels
-	ld A, $77
+	; Set volume to both channels
+	ld A, 0
 	ld [SoundVolume], A
 
 	; Set channels: 3 only, to both
@@ -30,12 +30,24 @@ Start::
 
 	; Set wave data to square wave
 	ld HL, SoundCh3Data
-	REPT 8
 	xor A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
 	ld [HL+], A
 	ld A, $ff
 	ld [HL+], A
-	ENDR
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
+	ld [HL+], A
 
 	; Ch3 volume, which is a basic shift of channel values...I think. Full for now.
 	ld A, %00100000

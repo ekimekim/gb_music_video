@@ -113,6 +113,8 @@ SoundCh4Control EQU $ff23
 ; Output channel control. For each nibble, bottom 3 bits control volume and top indicates if Vin
 ; cartridge audio should be routed to that output channel.
 ; Top nibble is left channel, bottom nibble is right channel.
+; Volume control values 0 to 7 correspond to volumes 1/8 to 8/8 respectively.
+; If you want to mute, you can turn the channel off in SoundMux instead.
 SoundVolume EQU $ff24
 ; Control of what generator channels should be routed to each output channel.
 ; For each nibble, bits 0-3 correspond to generator channels 1-4.
