@@ -5,6 +5,8 @@ from itertools import count
 values = {(x+1) * (y - 7.5) + 60: (x, y) for x in range(8) for y in range(16)}
 ceil = max(values)
 
+BANK_SIZE = 16*1024
+
 def main(asm_path, first_bank=1):
 	asm = open(asm_path, 'w')
 	for n in count():
@@ -15,10 +17,10 @@ def main(asm_path, first_bank=1):
 		i = quantize(i)
 		assert i in values
 		x, y = values[i]
-		if n % (16*1024) == 0:
-			asm.write('SECTION "Audio data part {}", ROMX, BANK[{}]\n'.format(n, first_bank+n))
+		if n % BANK_SIZE == 0:
+			asm.write('SECTION "Audio data part {}", ROMX, BANK[{}]\n'.format(n, first_bank+n/BANK_SIZE))
 		asm.write("\tdb ${:x}{:x}\n".format(x, y))
-		sys.stdout.write(chr(i*2))
+		sys.stdout.write(chr(int(i*2)))
 
 
 def quantize(i):

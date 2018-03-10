@@ -30,7 +30,7 @@ Start::
 
 	; Set wave data to square wave
 	ld HL, SoundCh3Data
-	ld A, $66
+	ld A, $ff
 	REPT 16
 	ld [HL+], A
 	ENDR

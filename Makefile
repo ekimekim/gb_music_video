@@ -3,12 +3,14 @@
 .SUFFIXES: .asm .o .gb
 .PHONY: bgb clean tests testroms debug
 
-ASMS := $(wildcard *.asm)
+GENERATED_ASM := audio_data.asm
+ASMS := $(wildcard *.asm) $(GENERATED_ASM)
 OBJS := $(ASMS:.asm=.o)
 DEBUGOBJS := $(addprefix build/debug/,$(OBJS))
 RELEASEOBJS := $(addprefix build/release/,$(OBJS))
 INCLUDES := $(wildcard include/*.asm)
 TESTS := $(wildcard tests/*.py)
+AUDIO := music.mp3
 
 all: build/release/rom.gb tests/.uptodate
 
@@ -20,6 +22,9 @@ testroms: tests/.uptodate
 
 tests: testroms
 	./runtests
+
+audio_data.asm: tools/process_audio tools/quantize_audio.py $(AUDIO)
+	tools/process_audio $(AUDIO)
 
 build/debug/%.o: %.asm $(INCLUDES) build/debug
 	rgbasm -DDEBUG=1 -i include/ -v -o $@ $<
@@ -48,5 +53,9 @@ bgb: build/release/rom.gb
 gambatte: build/release/rom.gb
 	gambatte_sdl $<
 
+copy: build/release/rom.gb
+	copy-rom music-video $<
+
 clean:
-	rm -f build/*/*.o build/*/rom.sym build/*/rom.gb tests/*/*.{asm,o,sym,gb}
+	rm -f build/*/*.o build/*/rom.sym build/*/rom.gb tests/*/*.{asm,o,sym,gb} $(GENERATED_ASM)
+
