@@ -30,7 +30,7 @@ Start::
 
 	; Set wave data to square wave
 	ld HL, SoundCh3Data
-	ld A, $ff
+	ld A, $66
 	REPT 16
 	ld [HL+], A
 	ENDR
@@ -48,10 +48,6 @@ Start::
 	; At 2048Hz (1024 cycles), modulate volume up/down
 	ld C, LOW(SoundVolume)
 	ld B, $ff
-.loop3
-	ld D, 16
-.loop2
-	ld E, 0
 .loop
 	ld A, $00
 	ld [C], A
@@ -63,28 +59,7 @@ Start::
 	REPT 503
 	nop
 	ENDR
-	dec E
-	jp nz, .loop
-	dec D
-	jp nz, .loop2
-
-	ld HL, SoundCh3Control
-	res 7, [HL]
-
-	ld A, B
-	sub $11
-	jr c, .break
-
-	ld B, A
-	ld HL, SoundCh3Data
-	REPT 16
-	ld [HL+], A
-	ENDR
-
-	ld HL, SoundCh3Control
-	set 7, [HL]
-
-	jp .loop3
+	jp .loop
 
 .break
 	jp HaltForever

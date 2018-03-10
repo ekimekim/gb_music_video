@@ -15,7 +15,5 @@
 00:0060 IntJoypad
 00:0003 HaltForever
 00:0104 _Header
-00:018E Start.loop
-00:018C Start.loop2
-00:018A Start.loop3
+00:018A Start.loop
 00:0150 Start

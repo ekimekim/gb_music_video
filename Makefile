@@ -45,5 +45,8 @@ debug: build/debug/rom.gb
 bgb: build/release/rom.gb
 	bgb $<
 
+gambatte: build/release/rom.gb
+	gambatte_sdl $<
+
 clean:
 	rm -f build/*/*.o build/*/rom.sym build/*/rom.gb tests/*/*.{asm,o,sym,gb}
