@@ -55,25 +55,34 @@ namespace animparse.Frames
                 palettes[vec.y, vec.x] = GetPalette(bitmapFrame[vec.y, vec.x]);
                 textures[vec.y, vec.x] = GetTexture(bitmapFrame[vec.y, vec.x], palettes[vec.y, vec.x]);
 
+                // Add Palette / Texture to rom
                 romData.UpsertPalette(palette, pushedPalettes);
                 romData.UpsertTexture(texture, pushedTextures);
 
+                // Add tile to frame
                 var tile = new GBTile();
                 tile.Palette = palette;
                 tile.Texture = texture;
                 frame.TileUpdates[vec.y, vec.x] = tile;
             }
 
-            // palettes
+            pushedPalettes.Sort();
+            pushedTextures.Sort();
+
+            // palettes changes
             frame.PaletteUpdates = pushedPalettes.ToDictionary(i => i, i => romData.PaletteData[i]);
 
-            // generate strips
+            // texture changes
             frame.LoadOrders = GetLoads(pushedTextures).ToList();
 
+            int foo = 0;
         }
 
         static GBTexture GetTexture(BitmapTexture bitmapTexture, GBPalette palette)
         {
+            if (bitmapTexture == null)
+                return GBTexture.Default;
+
             var tex = new GBTexture();
 
             for (int y = 0; y < GBTexture.WidthPx; y++)
@@ -91,6 +100,9 @@ namespace animparse.Frames
 
         static GBPalette GetPalette(BitmapTexture texture)
         {
+            if (texture == null)
+                return GBPalette.Default;
+
             var colors = new List<Color>();
             for (int y = 0; y < BitmapTexture.WidthPx; y++)
             {
@@ -108,20 +120,6 @@ namespace animparse.Frames
                 colors.Add(Color.Pink);
 
             return new GBPalette(colors.Take(GBPalette.MaxLength).ToArray());
-        }
-
-        public void Export(string path, RomData frames)
-        {
-            var extension = Path.GetExtension(path);
-            if (extension == ".json")
-            {
-                var json = JsonConvert.SerializeObject(frames);
-                File.WriteAllText(path, json);
-            }
-            else
-            {
-                throw new NotImplementedException(string.Format("extension {0} not implemented", extension));
-            }
         }
 
         static IEnumerable<TextureLoadOrder> GetLoads(List<int> tiles)
@@ -143,7 +141,7 @@ namespace animparse.Frames
                 };
                 lastIndex = lastIndex ?? index;
 
-                if(index == lastIndex + 1)
+                if (index == lastIndex.Value + 1)
                 {
                     lastIndex = index;
                     order.TexturesToCopy += 1;
@@ -158,6 +156,20 @@ namespace animparse.Frames
 
             if (order != null)
                 yield return order;
-        } 
+        }
+
+        public void Export(string path, RomData frames)
+        {
+            var extension = Path.GetExtension(path);
+            if (extension == ".json")
+            {
+                var json = JsonConvert.SerializeObject(frames);
+                File.WriteAllText(path, json);
+            }
+            else
+            {
+                throw new NotImplementedException(string.Format("extension {0} not implemented", extension));
+            }
+        }
     }
 }

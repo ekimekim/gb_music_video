@@ -17,14 +17,16 @@ namespace animparse.Frames.Bitmap
         int _xOffset;
         int _yOffset;
 
-        public static List<BitmapTexture[,]> FromBitmap(System.Drawing.Bitmap bitmap)
+        public static List<BitmapTexture[,]> FromBitmap(System.Drawing.Bitmap bitmap, bool includeScroll = false)
         {
+            int offsetScroll = includeScroll ? 0 : 1;
+
             var frames = new List<BitmapTexture[,]>();
             for (int xFramePixel = 0; xFramePixel < bitmap.Width; xFramePixel += FramePixelWidth)
             {
                 var bitmapTextures = new BitmapTexture[Frame.Height, Frame.Width];
 
-                foreach (var vec3 in ArrayUtility.ForEach(Frame.Height - 1, Frame.Width - 1))
+                foreach (var vec3 in ArrayUtility.ForEach(Frame.Height - offsetScroll, Frame.Width - offsetScroll))
                 {
                     var xPixelOffset = xFramePixel + (vec3.x * BitmapTexture.WidthPx);
                     var yPixelOffset = (vec3.y * BitmapTexture.WidthPx);

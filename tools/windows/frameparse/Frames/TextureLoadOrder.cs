@@ -12,5 +12,10 @@ namespace animparse.Frames
         public int DestinationBank;
         public int DestinationIndex;
         public int TexturesToCopy;
+
+        public override string ToString()
+        {
+            return string.Format("{0} to {1}, len {2}, bank {3}", SourceIndex, DestinationIndex, TexturesToCopy, DestinationBank);
+        }
     }
 }
