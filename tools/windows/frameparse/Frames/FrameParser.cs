@@ -74,8 +74,6 @@ namespace animparse.Frames
 
             // texture changes
             frame.LoadOrders = GetLoads(pushedTextures).ToList();
-
-            int foo = 0;
         }
 
         static GBTexture GetTexture(BitmapTexture bitmapTexture, GBPalette palette)
@@ -127,35 +125,34 @@ namespace animparse.Frames
             if (tiles.Any() == false)
                 yield break;
 
-            TextureLoadOrder order = null;
-            int? lastIndex = null;
+            List<List<int>> strips = new List<List<int>>();
+            strips.Add(new List<int>());
 
             foreach (var index in tiles)
             {
-                order = order ?? new TextureLoadOrder()
-                {
-                    DestinationBank = 0,
-                    DestinationIndex = index,
-                    SourceIndex = index,
-                    TexturesToCopy = 1,
-                };
-                lastIndex = lastIndex ?? index;
+                var lastStrip = strips.Last();
+                int? lastIndex = lastStrip.Any() ? lastStrip.Last() : (int?)null;
 
-                if (index == lastIndex.Value + 1)
+                if (lastIndex.HasValue && index == lastIndex + 1)
                 {
-                    lastIndex = index;
-                    order.TexturesToCopy += 1;
+                    lastStrip.Add(index);
                 }
                 else
                 {
-                    yield return order;
-                    order = null;
-                    lastIndex = null;
+                    strips.Add(new List<int>() { index });
                 }
             }
 
-            if (order != null)
-                yield return order;
+            foreach (var strip in strips.Where(s => s.Any()))
+            {
+                var load = new TextureLoadOrder();
+                load.DestinationBank = 0;
+                load.DestinationIndex = strip.First();
+                load.SourceIndex = strip.First();
+                load.TexturesToCopy = strips.Count;
+                yield return load;
+            }
+
         }
 
         public void Export(string path, RomData frames)
