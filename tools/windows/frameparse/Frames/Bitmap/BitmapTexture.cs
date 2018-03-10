@@ -1,4 +1,5 @@
-﻿using System;
+﻿using animparse.Frames.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -16,23 +17,19 @@ namespace animparse.Frames.Bitmap
         int _xOffset;
         int _yOffset;
 
-        public static List<BitmapTexture[][]> FromBitmap(System.Drawing.Bitmap bitmap)
+        public static List<BitmapTexture[,]> FromBitmap(System.Drawing.Bitmap bitmap)
         {
-            var frames = new List<BitmapTexture[][]>();
+            var frames = new List<BitmapTexture[,]>();
             for (int xFramePixel = 0; xFramePixel < bitmap.Width; xFramePixel += FramePixelWidth)
             {
-                var bitmapTextures = new BitmapTexture[Frame.Height][];
+                var bitmapTextures = new BitmapTexture[Frame.Height, Frame.Width];
 
-                for (int yCell = 0; yCell < Frame.Height; yCell++)
+                foreach (var vec3 in ArrayUtility.ForEach(Frame.Height - 1, Frame.Width - 1))
                 {
-                    bitmapTextures[yCell] = new BitmapTexture[Frame.Width];
-                    for (int xCell = 0; xCell < Frame.Width; xCell++)
-                    {
-                        var xPixelOffset = xFramePixel + (xCell * BitmapTexture.WidthPx);
-                        var yPixelOffset = yCell * BitmapTexture.WidthPx;
+                    var xPixelOffset = xFramePixel + (vec3.x * BitmapTexture.WidthPx);
+                    var yPixelOffset = (vec3.y * BitmapTexture.WidthPx);
 
-                        bitmapTextures[yCell][xCell] = BitmapTexture.FromBitmap(bitmap, xPixelOffset, yPixelOffset);
-                    }
+                    bitmapTextures[vec3.y, vec3.x] = BitmapTexture.FromBitmap(bitmap, xPixelOffset, yPixelOffset);
                 }
 
                 frames.Add(bitmapTextures);

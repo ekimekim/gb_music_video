@@ -17,18 +17,18 @@ namespace animparse.Frames.GB
 
     public static class BGColorUtility
     {
-        static Color[] DefaultPalette = new Color[]
+        static GBPalette DefaultPalette = new GBPalette(new Color[]
         {
             Color.Black,
             Color.FromArgb(2 * 255 / 4, 2 * 255 / 4, 2 * 255 / 4),
             Color.FromArgb(3 * 255 / 3, 3 * 255 / 4, 3 * 255 / 4),
             Color.White,
-        };
+        });
 
-        public static Color ToColor(this GBColor color, Color[] pallete = null)
+        public static Color ToColor(this GBColor color, GBPalette pallete = null)
         {
             pallete = pallete ?? DefaultPalette;
-            return pallete[(int)color];
+            return pallete.Colors[(int)color];
         }
     }
 }
