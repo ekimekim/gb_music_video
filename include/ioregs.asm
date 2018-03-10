@@ -95,6 +95,7 @@ SoundCh3Length EQU $ff1b
 SoundCh3Volume EQU $ff1c
 ; Channel 3 Frequency and general control. 11 bits of freq.
 ; The top 5 bits of the high byte are reused as control.
+; Frequency (that is, rate at which 4-bit samples are played) is calculated as 2^21/(2048-x) Hz.
 SoundCh3FreqLo EQU $ff1d
 SoundCh3Control EQU $ff1e
 ; Channel 3 custom wave data. 32 4-bit samples, upper nibble first. Runs from $ff30-$ff3f.
