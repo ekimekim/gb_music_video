@@ -52,10 +52,17 @@
     <Compile Include="Frames\Aseprite\AseFrame.cs" />
     <Compile Include="Frames\Aseprite\AseVector2.cs" />
     <Compile Include="Frames\Bitmap\BitmapTexture.cs" />
+    <Compile Include="Frames\Bitmap\ColorUtility.cs" />
     <Compile Include="Frames\Frame.cs" />
     <Compile Include="Frames\FrameParser.cs" />
     <Compile Include="Frames\GB\GBColor.cs" />
+    <Compile Include="Frames\GB\GBPalette.cs" />
     <Compile Include="Frames\GB\GBTexture.cs" />
+    <Compile Include="Frames\GB\GBTile.cs" />
+    <Compile Include="Frames\TextureLoadOrder.cs" />
+    <Compile Include="Frames\RomData.cs" />
+    <Compile Include="Frames\ScreenState.cs" />
+    <Compile Include="Frames\Utilities\ArrayUtility.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
