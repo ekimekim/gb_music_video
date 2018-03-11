@@ -1,4 +1,5 @@
 include "ioregs.asm"
+include "debug.asm"
 
 
 SECTION "Main methods", ROM0
@@ -27,6 +28,10 @@ Start::
 	; Turn on Ch3
 	ld A, %10000000
 	ld [SoundCh3OnOff], A
+
+	; set ch3 to no shift of samples
+	ld A, %00100000
+	ld [SoundCh3Volume], A
 
 	; We need to load the next sample pair every 228 cycles and update volume every 114.
 	; We alternate "long" updates where we add a sample pair and "short" ones where we don't.
@@ -69,13 +74,13 @@ ENDM
 	ld A, [HL+] ; next pair of samples
 	ld [C], A ; write samples
 
-	Wait 114 - 9 ; 9 from above
+	Wait 114 - 8 ; 8 from above
 
 	; short update
 	ld A, E
 	ld [SoundVolume], A ; next volume
 
-	Wait 114 - 4 - 29 ; 4 from above, 25 from below inc loop
+	Wait 114 - 4 - 46 ; 4 from above, 46 from below inc loop
 
 	; wrap bounds on C by setting upper nibble to 3 (range is 30-3f)
 	ld A, C
@@ -100,6 +105,21 @@ ENDM
 .no_newbank
 	Wait 15
 .newbank_end
+
+	; Load new volume pair
+	ld A, [HL] ; A = 0xxx0yyy where x is first entry
+	and $f0
+	ld D, A ; D = first entry, unprocessed
+	ld A, [HL+] ; load a fresh copy
+	and $0f
+	ld E, A ; E = 00000yyy
+	swap A
+	or E
+	ld E, A ; A = 0yyy0yyy
+	ld A, D
+	swap A
+	or D
+	ld D, A ; D = 0xxx0xxx
 
 	jp .loop
 
