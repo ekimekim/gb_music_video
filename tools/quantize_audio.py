@@ -7,7 +7,8 @@ ceil = max(values)
 BANK_SIZE = 16*1024
 
 def main(asm_path, first_bank=1):
-	asm_values = []
+	xs = []
+	ys = []
 	while True:
 		c = sys.stdin.read(1)
 		if not c:
@@ -16,15 +17,22 @@ def main(asm_path, first_bank=1):
 		i = quantize(i)
 		assert i in values
 		x, y = values[i]
-		asm_values.append((x,y))
+		xs.append(x)
+		ys.append(y)
 		sys.stdout.write(chr(int(i*2)))
 
-	if len(asm_values) % 2 == 1:
+	if len(xs) % 2 == 1:
 		# even it up with a neutral value. easier than handling special case of odd total samples.
-		asm_values.append(values[quantize(128)])
+		x, y = values[quantize(128)]
+		xs.append(x)
+		ys.append(y)
+
+	# ys is delayed by 32 so we pad xs with 32 zeroes at start and y with 32 7s at end
+	xs = [0] * 32 + xs
+	ys = ys + [7] * 32
 
 	with open(asm_path, 'w') as f:
-		for n, ((x1, y1), (x2, y2)) in enumerate(zip(asm_values[::2], asm_values[1::2])):
+		for n, ((x1, x2), (y1, y2)) in enumerate(zip(zip(xs[::2], xs[1::2]), zip(ys[::2], ys[1::2]))):
 			n = n * 2
 			if n % BANK_SIZE == 0:
 				f.write('SECTION "Audio data part {}", ROMX, BANK[{}]\n'.format(n, first_bank+n/BANK_SIZE))
