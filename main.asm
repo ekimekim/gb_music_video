@@ -56,7 +56,7 @@ Start::
 
 	ld [SoundVolume], A
 
-	; Set freqency. We want 18396Hz so we set freq = 2^21/114. To get 114, we do 2048-57 = 1934.
+	; Set freqency. We want 18396Hz so we set freq = 2^21/114. To get 114, we do 2048-114 = 1934.
 	ld A, LOW(1934)
 	ld [SoundCh3FreqLo], A
 	ld A, HIGH(1934) | %10000000 ; flag to start playing
@@ -81,7 +81,7 @@ ENDM
 
 	; prepare next two volumes, write the first,
 	; and write next round's sample.
-	; total time: 48 cycles
+	; total time: 44 cycles
 
 	ld A, [HL+] ; next pair of samples
 	ld [SoundCh3Data], A ; write samples
@@ -102,7 +102,7 @@ ENDM
 	ld [$2000], A ; switch bank
 	jr .newbank_end
 .no_newbank
-	Wait 15
+	Wait 16
 .newbank_end
 
 	; Load new volume pair
@@ -121,7 +121,7 @@ ENDM
 
 	; wait until 3 cycles before next sample starts
 
-	Wait 114 - 48 - 3
+	Wait 114 - 44 - 3
 
 	ld [SoundVolume], A ; next sample starts on the cycle this instruction finishes
 
