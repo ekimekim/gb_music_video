@@ -2,6 +2,12 @@ include "ioregs.asm"
 include "debug.asm"
 
 
+SECTION "Stack", WRAM0
+
+	ds 128
+Stack:
+
+
 SECTION "Main methods", ROM0
 
 Start::
@@ -15,23 +21,9 @@ Start::
 	ld [CGBSpeedSwitch], A
 	stop
 
-	; test: play square wave at volume 0. is it silent?
+	ld SP, Stack
 
-	; enable sound
-	ld A, %10000000
-	ld [SoundControl], A
-
-	; Set channels: 3 only, to both
-	ld A, %01000100
-	ld [SoundMux], A
-
-	; Turn on Ch3
-	ld A, %10000000
-	ld [SoundCh3OnOff], A
-
-	; set ch3 to no shift of samples
-	ld A, %00100000
-	ld [SoundCh3Volume], A
+	call InitSound
 
 	; We need to load the next sample pair every 228 cycles and update volume every 114.
 	; We alternate "long" updates where we add a sample pair and "short" ones where we don't.
@@ -56,11 +48,9 @@ Start::
 
 	ld [SoundVolume], A
 
-	; Set freqency. We want 18396Hz so we set freq = 2^21/114. To get 114, we do 2048-114 = 1934.
-	ld A, LOW(1934)
-	ld [SoundCh3FreqLo], A
-	ld A, HIGH(1934) | %10000000 ; flag to start playing
 	; Time starts when we write to control register.
+	ld A, [SoundCh3Control]
+	set 7, A
 	ld [SoundCh3Control], A
 
 Wait: MACRO
@@ -131,3 +121,29 @@ ENDM
 	xor A
 	ld [SoundControl], A ; turn off sound
 	jp HaltForever
+
+
+InitSound::
+	; enable sound
+	ld A, %10000000
+	ld [SoundControl], A
+
+	; Set channels: 3 only, to both
+	ld A, %01000100
+	ld [SoundMux], A
+
+	; Turn on Ch3
+	ld A, %10000000
+	ld [SoundCh3OnOff], A
+
+	; set ch3 to no shift of samples
+	ld A, %00100000
+	ld [SoundCh3Volume], A
+
+	; Set freqency. We want 18396Hz so we set freq = 2^21/114. To get 114, we do 2048-114 = 1934.
+	ld A, LOW(1934)
+	ld [SoundCh3FreqLo], A
+	ld A, HIGH(1934)
+	ld [SoundCh3Control], A ; note we aren't actually beginning playback yet - do that later by setting bit 7
+
+	ret
