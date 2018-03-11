@@ -53,7 +53,16 @@ namespace animparse.Frames.Bitmap
 
         public Color Get(int x, int y)
         {
-            return _bitmap.GetPixel(x + _xOffset, y + _yOffset);
+            x += _xOffset;
+            y += _yOffset;
+
+            if (x >= _bitmap.Width || y >= _bitmap.Height)
+            {
+                // out of range
+                return Color.Black;
+            }
+
+            return _bitmap.GetPixel(x, y);
         }
     }
 }
