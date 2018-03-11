@@ -30,13 +30,18 @@ namespace animparse.Frames
 
             foreach (var bitmapFrame in bitmapFrames)
             {
-                AddFrame(romData, bitmapFrame);
+                var frame = ParseFrame(romData, bitmapFrame);
+
+                frame.Index = romData.Frames.Count;
+                frame.Duration = 16 * 2;
+
+                romData.Frames.Add(frame);
             }
 
             return romData;
         }
 
-        public static void AddFrame(RomData romData, BitmapTexture[,] bitmapFrame)
+        public static Frame ParseFrame(RomData romData, BitmapTexture[,] bitmapFrame)
         {
             var frame = new Frame();
 
@@ -74,6 +79,8 @@ namespace animparse.Frames
 
             // texture changes
             frame.LoadOrders = GetLoads(pushedTextures).ToList();
+
+            return frame;
         }
 
         static GBTexture GetTexture(BitmapTexture bitmapTexture, GBPalette palette)
@@ -152,7 +159,6 @@ namespace animparse.Frames
                 load.TexturesToCopy = strips.Count;
                 yield return load;
             }
-
         }
 
         public void Export(string path, RomData frames)
@@ -160,7 +166,7 @@ namespace animparse.Frames
             var extension = Path.GetExtension(path);
             if (extension == ".json")
             {
-                var json = JsonConvert.SerializeObject(frames);
+                var json = JsonConvert.SerializeObject(frames, Formatting.Indented);
                 File.WriteAllText(path, json);
             }
             else

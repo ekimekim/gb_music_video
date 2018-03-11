@@ -25,6 +25,9 @@ namespace animparse.Frames
         public int xScroll;
         public int yScroll;
 
+        public int Index;
+        public int Duration;
+
         public Frame()
         {
             TileUpdates = new GBTile[Height, Width];
