@@ -1,7 +1,10 @@
 audio data:
-	List of 1-byte samples, played at 18396Hz:
-		0vvvxxxx
-			Wave data value = vvv * xxxx
+	List of samples, played at 18396Hz.
+	Samples are grouped into pairs:
+		0vvv0VVV
+		xxxxXXXX
+	where vvv, xxxx is the first sample, and VVV, XXXX is the second.
+	Wave data values = (vvv+1) * (xxxx - 7.5)
 
 palette data:
 	List of palettes, 8 bytes each.

@@ -215,6 +215,11 @@ SpritePaletteData EQU $ff6b
 ; Also, colors are mixed oddly - sometimes changing one value will also influence others.
 ; This completes changes on GBA emulating CGB! 0-15 are almost black.
 ; One source suggests GBA-specific palettes of (CGB-value)/2 + 16.
+; One emulator (gambatte) I checked maps GBC RGB values as follows.
+; Format is: output (out of 256) = combination of inputs
+; r = (13r + 2g + b)/2
+; g = 6g + 2b
+; b = (3r + 2g + 11b)/2
 
 ; "KEY1" Game Boy Color speed switch.
 ; Bit 7 is unset/set when in normal/double speed respectively.
