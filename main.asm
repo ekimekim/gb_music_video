@@ -73,18 +73,15 @@ ENDM
 
 .loop
 
-	Wait 57 - 4 ; wait a half-sample from start
+	Wait 114 - 4 - 4 ; wait until 4 cycles before second sample starts
 
-	; halfway through first sample, prepare volume for next
+	; write volume for second sample
 	ld A, E
-	ld [SoundVolume], A ; next volume
+	ld [SoundVolume], A ; second sample starts on the cycle this instruction finishes
 
-	Wait 114 - 4 ; 4 from above
-
-	; halfway through second sample, prepare next two volumes, write the first,
+	; prepare next two volumes, write the first,
 	; and write next round's sample.
-
-	; 48
+	; total time: 48 cycles
 
 	ld A, [HL+] ; next pair of samples
 	ld [SoundCh3Data], A ; write samples
@@ -122,12 +119,11 @@ ENDM
 	swap A
 	or D ; A = 0xxx0xxx
 
-	; Write next volume
-	ld [SoundVolume], A
+	; wait until 3 cycles before next sample starts
 
-	Wait 57 - 48 ; 48 from above
+	Wait 114 - 48 - 3
 
-	; this instant is when next sample plays and sample index switches
+	ld [SoundVolume], A ; next sample starts on the cycle this instruction finishes
 
 	jp .loop
 
