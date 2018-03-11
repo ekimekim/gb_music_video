@@ -55,10 +55,10 @@ Start::
 	or D
 	ld D, A
 
-	; Set freqency. We want 18396Hz so we set freq = 2^20/57. To get 57, we do 2048-57 = 1991.
-	ld A, LOW(1991)
+	; Set freqency. We want 18396Hz so we set freq = 2^21/114. To get 114, we do 2048-57 = 1934.
+	ld A, LOW(1934)
 	ld [SoundCh3FreqLo], A
-	ld A, HIGH(1991) | %10000000 ; flag to start playing
+	ld A, HIGH(1934) | %10000000 ; flag to start playing
 	; Time starts when we write to control register.
 	ld [SoundCh3Control], A
 
