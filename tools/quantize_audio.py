@@ -21,6 +21,10 @@ def main(asm_path, first_bank=1):
 		ys.append(y)
 		sys.stdout.write(chr(int(i*2)))
 
+	with open('/tmp/b', 'w') as f:
+		for x, y in zip(xs, ys):
+			f.write('{:x} {:x}\n'.format(x, y))
+
 	if len(xs) % 2 == 1:
 		# even it up with a neutral value. easier than handling special case of odd total samples.
 		x, y = values[quantize(128)]
