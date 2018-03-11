@@ -36,7 +36,6 @@ Start::
 	; We need to load the next sample pair every 228 cycles and update volume every 114.
 	; We alternate "long" updates where we add a sample pair and "short" ones where we don't.
 
-	ld C, LOW(SoundCh3Data) ; sample pair index
 	ld HL, $4000 ; addr within bank
 	ld B, 1 ; bank
 
@@ -55,6 +54,8 @@ Start::
 	or D
 	ld D, A
 
+	ld [SoundVolume], A
+
 	; Set freqency. We want 18396Hz so we set freq = 2^21/114. To get 114, we do 2048-57 = 1934.
 	ld A, LOW(1934)
 	ld [SoundCh3FreqLo], A
@@ -68,24 +69,25 @@ Wait: MACRO
 	ENDR
 ENDM
 
+	Wait 4 ; simulate the jump back to top of loop
+
 .loop
-	ld A, D
-	ld [SoundVolume], A ; next volume
-	ld A, [HL+] ; next pair of samples
-	ld [C], A ; write samples
 
-	Wait 114 - 8 ; 8 from above
+	Wait 57 - 4 ; wait a half-sample from start
 
-	; short update
+	; halfway through first sample, prepare volume for next
 	ld A, E
 	ld [SoundVolume], A ; next volume
 
-	Wait 114 - 4 - 46 ; 4 from above, 46 from below inc loop
+	Wait 114 - 4 ; 4 from above
 
-	; wrap bounds on C by setting upper nibble to 3 (range is 30-3f)
-	ld A, C
-	and $0f
-	or $30 ; set upper nibble to 3
+	; halfway through second sample, prepare next two volumes, write the first,
+	; and write next round's sample.
+
+	; 48
+
+	ld A, [HL+] ; next pair of samples
+	ld [SoundCh3Data], A ; write samples
 
 	; check bounds on HL and inc bank
 	ld A, H
@@ -115,11 +117,17 @@ ENDM
 	ld E, A ; E = 00000yyy
 	swap A
 	or E
-	ld E, A ; A = 0yyy0yyy
+	ld E, A ; E = 0yyy0yyy
 	ld A, D
 	swap A
-	or D
-	ld D, A ; D = 0xxx0xxx
+	or D ; A = 0xxx0xxx
+
+	; Write next volume
+	ld [SoundVolume], A
+
+	Wait 57 - 48 ; 48 from above
+
+	; this instant is when next sample plays and sample index switches
 
 	jp .loop
 
