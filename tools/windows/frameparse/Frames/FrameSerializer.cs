@@ -1,4 +1,5 @@
 ﻿using animparse.Frames.GB;
+using animparse.Frames.Utilities;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -46,8 +47,76 @@ namespace animparse.Frames
 
             writer.WriteTextures(romData);
 
+            writer.WriteFrames(romData);
 
             int a = 0;
+        }
+
+        static void WriteFrames(this StreamWriter writer, RomData romData)
+        {
+            writer.WriteComment(string.Format("Frames {0}", romData.Frames.Count));
+            writer.WriteLine();
+
+            var index = 0;
+            foreach (var frame in romData.Frames)
+            {
+                writer.WriteComment(string.Format("Frames [{0}]", ++index));
+
+                const int TileRowBytes = 32;
+
+                writer.WriteComment(string.Format("Frames [{0}].Tiles - vram indexes", index));
+                var defaultTile = frame.TileUpdates[0, 0];
+                for (int row = 0; row < Frame.Height; row++)
+                {
+                    writer.Write("db "); // declare byte
+                    for (int col = 0; col < Frame.Width; col++)
+                    {
+                        var tile = frame.TileUpdates[row, col] ?? defaultTile;
+                        var textureIndex = romData.TextureData.IndexOf(tile.Texture);
+
+                        if (col > 0)
+                            writer.Write(", ");
+                        writer.Write(textureIndex.ToString());
+                    }
+
+                    writer.Write(" ");
+                    writer.WritePadding(TileRowBytes - Frame.Width);
+                }
+                writer.WriteLine();
+
+                writer.WriteComment(string.Format("Frames [{0}].Tiles - flags", index));
+                for (int row = 0; row < Frame.Height; row++)
+                {
+                    writer.Write("db "); // declare byte
+                    for (int col = 0; col < Frame.Width; col++)
+                    {
+                        var tile = frame.TileUpdates[row, col] ?? defaultTile;
+                        var paletteIndex = romData.TextureData.IndexOf(tile.Texture);
+
+                        //0vh0bppp
+                        // v = flip vert
+                        // h = flip horiontal
+                        // b = palette bank
+                        // p = palette index
+
+                        // defaults + set palette index
+                        var flags = paletteIndex;
+
+                        if (col > 0)
+                            writer.Write(", ");
+                        writer.Write(flags.ToString());
+                    }
+
+                    writer.Write(" ");
+                    writer.WritePadding(TileRowBytes - Frame.Width);
+                }
+            }
+
+        }
+
+        static void WritePadding(this StreamWriter writer, int bytes)
+        {
+            writer.WriteLine("ds " + bytes); // declare byte
         }
 
         static void WriteTextures(this StreamWriter writer, RomData romData)
@@ -55,10 +124,10 @@ namespace animparse.Frames
             writer.WriteComment(string.Format("Rom Textures {0}", romData.TextureData.Count));
             writer.WriteLine();
 
-            for (int i = 0; i < romData.TextureData.Count; i++)
+            var index = 0;
+            foreach(var texture in romData.TextureData)
             {
-                var texture = romData.TextureData[i];
-                writer.WriteComment(string.Format("Rom Textures [{0}]", i));
+                writer.WriteComment(string.Format("Rom Textures [{0}]", ++index));
 
                 for (int rowIndex = 0; rowIndex < GBTexture.WidthPx; rowIndex++)
                 {
