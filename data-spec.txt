@@ -50,10 +50,12 @@ frame data:
 	Frames are referred to by their index into this list.
 	This is called the *frame index*.
 	Each frame consists of:
-		19 rows:
-			Each row consists of 21 tile vram indexes
-			followed by 21 tile flag values,
-			corresponding to the tiles to display in this row.
+		19 rows of tile vram indexes:
+			Each row consists of 21 tile vram indexes,
+			followed by 11 bytes of padding.
+		19 rows of tile flag values:
+			Each row consists of 21 tile flag values,
+			followed by 11 bytes of padding.
 			Tile flag are one byte:
 				0vh0bppp
 				where v and h are flags saying if the tile should be vertically or horizontally flipped,
