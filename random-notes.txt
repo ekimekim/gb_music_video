@@ -27,10 +27,11 @@ palettes:
 		We can update half of the palettes each cycle.
 
 	Palette data compression:
-		Instead of storing a whole 4 palettes for each line change,
-		we store 4x 2 bytes indicating a palette number. Then we have a seperate list of
-		all unique palettes used by the program.
-		This would be loaded into RAM.
+		Storing every single full set of 4 palettes with each line of each frame is way
+		too expensive on ROM.
+		Storing a list of 4 palettes for each line then referring to a table of unique palettes
+		is better, but takes too long to resolve into actual lists of 4 palettes.
+		Instead, we store a single index which refers to a table of groups of 4 palettes.
 
 tile map:
 	We can't afford any DMA during hblank as we simply can't spare 16 whole cycles.
@@ -72,7 +73,9 @@ ROM usage:
 
 	tile data: 1024 tiles/bank. Probably only need 1-2 banks.
 
-	palette data: 2048 palettes/bank. Probably only need 1 bank.
+	palette group data:
+		Each palette group is 32b. We can fit 512 in a bank.
+		Maybe will need up to 4-8 banks.
 
 	tile and palette map:
 		Ideally packed, each frame is:

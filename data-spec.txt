@@ -6,18 +6,24 @@ audio data:
 	where vvv, xxxx is the first sample, and VVV, XXXX is the second.
 	Wave data values = (vvv+1) * (xxxx - 7.5)
 
-palette data:
-	List of palettes, 8 bytes each.
-	Palettes are referred to by their index into this list.
-	This is called the *palette index* and is a 2-byte value.
-	Each palette is a list of 4 colors.
+palette group data:
+	List of palette groups, 32 bytes each.
+	Palette groups are referred to by their index into this list.
+	This is called the *palette group index* and is a 2-byte value.
+	A palette group is a list of 4 palettes which are used as a set,
+	ie. you specify the entire palette group to be loaded into memory for a particular line.
+	Each palette within the group is a list of 4 colors.
 	Each color is a 2-byte value:
 		gggrrrrr 0bbbbbGG
 	where red is rrrrr, blue is bbbbb, and green is GGggg.
 	ie. it's like this but little-endian:
 		0bbb bbgg gggr rrrr
 	Values are not linear to brightness of each color.
-	I'll try to get a proper color space mapping available later.
+	Maps to standard RGB32 as follows:
+		r = (13r + 2g + b)/2
+		g = 6g + 2b
+		b = (3r + 2g + 11b)/2
+	ie. a value of (31, 0, 0) is actually color #c9002e.
 
 rom tile data:
 	List of tiles, 16 bytes each.
@@ -54,16 +60,14 @@ frame data:
 			Before each line, 4 palettes are written.
 			On even lines (0, 2, etc), palettes 0-3 are overwritten.
 			On odd lines (1, 3, etc), palettes 4-7 are overwritten.
-			Each palette change consists of 4 palette indexes, stored big-endian.
-			For example, to change the 4 palettes to indexes 20, 256, 400 and 1,
-			the values should be (in bytes):
-				(0, 20), (1, 0), (1, 144), (0, 1)
+			Each palette change consists of a palette group index,
+			referring to the 4 new palette values to be written.
 		1 byte of scroll values:
 			0yyy0xxx
 			where yyy is scroll y value, and xxx is scroll x value.
 			This allows you to scroll up to just under one tile in either axis, exposing the
 			19th row or 21st column.
-		One byte indicating length of the following load order list, between 0 and 19.
+		One byte indicating length of the following load order list, between 0 and 20.
 		List of load orders:
 			A load order happens before the frame and indicates what tiles should be loaded into
 			VRAM. It consists of two parts:
@@ -89,4 +93,4 @@ frame data:
 			For example, you can do 50 tiles in one load order,
 			or 49 spread over two, or 48 spread over three, etc.
 		The remaining bytes up to 2048 are unused padding
-			You can calculate how many bytes to use as: 96 - <number of load orders> * 5
+			You can calculate how many bytes to use as: 102 - <number of load orders> * 5
