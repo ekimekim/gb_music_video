@@ -157,22 +157,12 @@ namespace animparse.Frames
                 load.DestinationIndex = strip.First();
                 load.SourceIndex = strip.First();
                 load.TexturesToCopy = strips.Count;
+
+                load.ValidateBanks();
+
                 yield return load;
             }
         }
 
-        public void Export(string path, RomData frames)
-        {
-            var extension = Path.GetExtension(path);
-            if (extension == ".json")
-            {
-                var json = JsonConvert.SerializeObject(frames, Formatting.Indented);
-                File.WriteAllText(path, json);
-            }
-            else
-            {
-                throw new NotImplementedException(string.Format("extension {0} not implemented", extension));
-            }
-        }
     }
 }

@@ -15,8 +15,9 @@ namespace animparse
             var to = StripQuotes(args[1]);
 
             var parser = new FrameParser();
-            var frames = parser.Parse(from);
-            parser.Export(to, frames);
+            var romData = parser.Parse(from);
+
+            FrameSerializer.Export(to, romData);
         }
 
         static string StripQuotes(string path)
