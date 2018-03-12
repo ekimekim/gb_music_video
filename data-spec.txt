@@ -1,3 +1,6 @@
+NOTE: in all cases, when showing bits within a byte, the left-most bit is the most signifigant.
+	For example, "x0000000" means 128 when x = 1, or 0 when x = 0.
+
 audio data:
 	List of samples, played at 18396Hz.
 	Samples are grouped into pairs:
