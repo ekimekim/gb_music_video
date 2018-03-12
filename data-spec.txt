@@ -61,12 +61,13 @@ frame data:
 				where v and h are flags saying if the tile should be vertically or horizontally flipped,
 				b is the tile vram bank of the tile to display,
 				and ppp is the color palette number to use.
-		144 palette changes:
-			Before each line, 4 palettes are written.
-			On even lines (0, 2, etc), palettes 0-3 are overwritten.
-			On odd lines (1, 3, etc), palettes 4-7 are overwritten.
+		144 palette changes, per line:
+			Before each line, palettes 0-3 are written.
 			Each palette change consists of a palette group index,
 			referring to the 4 new palette values to be written.
+		1 palette change, for the whole frame:
+			This sets the value of palettes 4-7 for the frame.
+			It is a palette group index that refers to the 4 new palette values to write.
 		1 byte of scroll values:
 			0yyy0xxx
 			where yyy is scroll y value, and xxx is scroll x value.
@@ -99,4 +100,4 @@ frame data:
 			or 49 spread over two, or 48 spread over three, etc,
 			down to 25 load orders of 1 tile each.
 		The remaining bytes up to 2048 are unused padding
-			You can calculate how many bytes to use as: 542 - <number of load orders> * 5
+			You can calculate how many bytes to use as: 540 - <number of load orders> * 5
