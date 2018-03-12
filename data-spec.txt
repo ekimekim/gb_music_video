@@ -70,7 +70,7 @@ frame data:
 			where yyy is scroll y value, and xxx is scroll x value.
 			This allows you to scroll up to just under one tile in either axis, exposing the
 			19th row or 21st column.
-		One byte indicating length of the following load order list, between 0 and 20.
+		One byte indicating length of the following load order list, between 0 and 25.
 		List of load orders:
 			A load order happens before the frame and indicates what tiles should be loaded into
 			VRAM. It consists of two parts:
@@ -94,6 +94,7 @@ frame data:
 			NOTE: There is a timing limit here based on both the number of load orders and
 			the number of tiles. The total number of tiles + the number of load orders must be <= 51.
 			For example, you can do 50 tiles in one load order,
-			or 49 spread over two, or 48 spread over three, etc.
+			or 49 spread over two, or 48 spread over three, etc,
+			down to 25 load orders of 1 tile each.
 		The remaining bytes up to 2048 are unused padding
-			You can calculate how many bytes to use as: 102 - <number of load orders> * 5
+			You can calculate how many bytes to use as: 542 - <number of load orders> * 5

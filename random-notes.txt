@@ -79,23 +79,12 @@ ROM usage:
 
 	tile and palette map:
 		Ideally packed, each frame is:
-			21*19 tiles * 2b/tile + 4 palettes/line * 2b/palette * 144 lines = 798b + 1152b = 1950b
-		which can fit 4 frames/bank.
+			21*19 tiles * 2b/tile + 1 palette group/line * 2b/palette group * 144 lines
+			= 798b + 228b = 1086b
+		which can fit 8 frames/bank (though not 16, sadly).
 		However, to facilitate DMA, each row needs to have 11b of junk on the end.
 		With junk included:
-			32*19 tiles * 2b/tile = 1216 + previous for palette = 2368 which is only 3 frames/bank.
-		So we need to pack the frame data somehow.
-		Option 1: copy into RAM.
-			Takes ~6 cycles/byte * 798b = 4788.
-			We have ~9k of cycle time left, so this is feasible.
-		Option 2: stick palettes into unused part
-			This makes perfect use of the space, and doesn't add much complexity/time to
-			the existing palette decompression routine. This is a better option.
-			Let's say the first set of 4 palettes and the first one of the next set go in there.
-			This junk will be written to VRAM but it doesn't matter.
-			This still leaves 1 byte/line unused which costs us 19 bytes, but that'll fit.
-			Except we have one more row than set of 8 lines due to scrolling,
-			so this all gets fucked up. Simpler to go with option 1.
+			32*19 tiles * 2b/tile = 1216 + previous for palette = 1504
 		Also +1 byte which holds scroll values, 0-7 in each direction.
 		Also a list of tile load orders, a few bytes each.
 
