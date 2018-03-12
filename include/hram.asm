@@ -3,7 +3,9 @@ _G_HRAM EQU "true"
 
 RSSET $ff80
 
-; HRAM vars go here.
-; Example: Foo rb 1
+; Current audio sample bank
+AudioBank rb 1
+; Current audio sample address (within banked ROM, so $4000-$8000), big-endian.
+AudioAddr rb 2
 
 ENDC
