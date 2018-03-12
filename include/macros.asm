@@ -60,22 +60,22 @@ ShiftRN_A: MACRO
 	and $ff >> (\1)
 	ENDM
 
-; Set the ROM bank number to A
-SetROMBank: MACRO
-	ld [$2100], A ; I'm not entirely sure how to set the MBC type, and MBC2 doesn't like $2000
-	ENDM
+; Halts compilation if condition \1 is true with message \2
+FailIf: MACRO
+IF (\1)
+FAIL (\2)
+ENDC
+ENDM
 
-; Set the RAM bank number to A
-SetRAMBank: MACRO
-	ld [$4000], A
-	ENDM
-
-; Convenience method to set up for calling TaskNew functions
-; It takes the given entry point and sets DE (address) and C (bank) appropriately.
-; Note it sets bank to 0 (ie. don't set any bank) if entry point is in ROM0.
-SetTaskNewEntryPoint: MACRO
-	ld DE, (\1)
-	ld C, BANK(\1)
-	ENDM
+; Wait for \1 cycles (nops)
+; Note that in some cases you may want to use a higher-density (cycles/space) instruction,
+; but you need to pick one with side-effects you are ok with.
+; push/pop pairs are a good one that average 7 cycles per 2 bytes, but has side effects if SP
+; is not a valid stack.
+Wait: MACRO
+REPT (\1)
+	nop
+ENDR
+ENDM
 
 ENDC

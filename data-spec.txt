@@ -1,6 +1,12 @@
 NOTE: in all cases, when showing bits within a byte, the left-most bit is the most signifigant.
 	For example, "x0000000" means 128 when x = 1, or 0 when x = 0.
 
+NOTE: In all cases, when referring to an address within a bank of an object,
+	the address is of the object when that bank is loaded,
+	which is equal to $4000 + <address within bank>.
+	For example, the second palette group in bank 5 is at position $0020 within the bank
+	(because each palette group is 32 == $20 bytes long), so its address is $4020.
+
 audio data:
 	List of samples, played at 18396Hz.
 	Samples are grouped into pairs:
@@ -11,8 +17,8 @@ audio data:
 
 palette group data:
 	List of palette groups, 32 bytes each.
-	Palette groups are referred to by their index into this list.
-	This is called the *palette group index* and is a 2-byte value.
+	Palette groups are referred to by their address within each bank,
+	called the *palette group address*, and their bank, called the *palette group bank*.
 	A palette group is a list of 4 palettes which are used as a set,
 	ie. you specify the entire palette group to be loaded into memory for a particular line.
 	Each palette within the group is a list of 4 colors.
@@ -64,7 +70,8 @@ frame data:
 					and ppp is the color palette number to use.
 		144 palette changes, per line:
 			Before each line, palettes 0-3 are written.
-			Each palette change consists of a palette group index,
+			Each palette change consists of a palette group address (two bytes, little-endian),
+			followed by a pair (0, palette group bank),
 			referring to the 4 new palette values to be written.
 		1 palette change, for the whole frame:
 			This sets the value of palettes 4-7 for the frame.
@@ -100,5 +107,7 @@ frame data:
 			For example, you can do 50 textures in one load order,
 			or 49 spread over two, or 48 spread over three, etc,
 			down to 25 load orders of 1 texture each.
+			NOTE: Load orders cannot cross bank boundaries. This means texture index values which are multiples
+			of 1024. For example, this would be an invalid load order: "load 4 textures starting at 1022".
 		The remaining bytes up to 2048 are unused padding
-			You can calculate how many bytes to use as: 540 - <number of load orders> * 5
+			You can calculate how many bytes to use as: 312 - <number of load orders> * 5
