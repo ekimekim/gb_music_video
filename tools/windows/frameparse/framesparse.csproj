@@ -55,6 +55,7 @@
     <Compile Include="Frames\Bitmap\ColorUtility.cs" />
     <Compile Include="Frames\Frame.cs" />
     <Compile Include="Frames\FrameParser.cs" />
+    <Compile Include="Frames\FrameSerializer.cs" />
     <Compile Include="Frames\GB\GBColor.cs" />
     <Compile Include="Frames\GB\GBPalette.cs" />
     <Compile Include="Frames\GB\GBTexture.cs" />
