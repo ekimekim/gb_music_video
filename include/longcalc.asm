@@ -26,6 +26,8 @@ LongAddParts: MACRO
 
 ; Helper to LongAddParts that takes 16-bit immediates or reg pairs \1, \2, \3
 ; such that \3 = \1 + \2
+; NOTE: Consider using add HL, (BC|DE|HL|SP) instead.
+; It's much faster (2 vs 6) and shorter (1 vs 6).
 LongAdd: MACRO
 	LongAddParts HIGH(\1),LOW(\1), HIGH(\2),LOW(\2), HIGH(\3),LOW(\3)
 ENDM
