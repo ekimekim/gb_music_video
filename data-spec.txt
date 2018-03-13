@@ -51,6 +51,16 @@ vram texture data:
 	and are 1-byte values each.
 	The format is the same as rom texture data.
 
+palette change data:
+	A list of palette change lists. Each palette change list is 512b long
+	and corresponds to the same index into the frame data list - ie. index 0 corresponds
+	to frame index 0.
+	Each palette change list contains 144 entries, corresponding to each line of pixels on screen.
+		Before rendering that line, it writes the given palette group to palette numbers 0-3.
+		Each palette change is specified as:
+			The palette group address of the palette group to use, little-endian.
+			The palette group bank of the palette group to use.
+
 frame data:
 	List of frames, 2048 bytes each.
 	Frames are referred to by their index into this list.
@@ -68,11 +78,6 @@ frame data:
 					where v and h are flags saying if the tile should be vertically or horizontally flipped,
 					b is the texture vram bank of the tile to display,
 					and ppp is the color palette number to use.
-		144 palette changes, per line:
-			Before each line, palettes 0-3 are written.
-			Each palette change consists of a palette group address (two bytes, little-endian),
-			followed by a pair (0, palette group bank),
-			referring to the 4 new palette values to be written.
 		1 palette change, for the whole frame:
 			This sets the value of palettes 4-7 for the frame.
 			It is a palette group index that refers to the 4 new palette values to write.
@@ -110,4 +115,13 @@ frame data:
 			or 49 spread over two, or 48 spread over three, etc,
 			down to 25 load orders of 1 texture each.
 		The remaining bytes up to 2048 are unused padding
-			You can calculate how many bytes to use as: 312 - <number of load orders> * 6
+			You can calculate how many bytes to use as: 888 - <number of load orders> * 6
+
+frame order list:
+	A list of frame indexes, indicating the order in which they should be played.
+	Each index is displayed for one frame (1/59.7275th of a second).
+
+Bank locations:
+	Audio data, palette change list and palette groups must be in *high banks* 256-511.
+	Everything else must be in *low banks* 1-255.
+	Bank 0 is reserved for code.

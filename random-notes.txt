@@ -88,8 +88,27 @@ ROM usage:
 		Also +1 byte which holds scroll values, 0-7 in each direction.
 		Also a list of tile load orders, a few bytes each.
 
+		UPDATE: We want to only need to refer to one half of all banks (0-255 or 256-511)
+		within the actual frame rendering. This means sound and palette changes.
+		This doesn't fit if palette changes are stored with tile maps. Instead, we split them.
+		So palette change lists are 144*3 (because they're padded to (addr, bank)) = 432
+		so we can store 32 per bank. Frames are still between 1024 and 2048 so they're still
+		8 to a bank.
+
 	So we can pack 8 frames in a bank, so with ~200 banks we have ~1600 unique frames.
 
 	other stuff:
-		flow control deciding what frames to show and when, loops, etc. unlikely to need a whole
-		bank.
+		list of frame indexes in order. 8k/bank, 59.7275 per second = 3583.65/min = 0.43745 banks/min.
+		2 banks can hold 3min to just under 5min video.
+
+	Final bank tally:
+		high banks:
+			we're a little over so we need to skimp on at least one of these
+			sound: 200 for 3min
+			palettes: 50 for 1600 frames
+			palette groups: 8 for 4096 palette groups
+		low banks:
+			code: 1
+			tile data: 2 for 2048 tiles
+			frames: 200 for 1600 frames
+			frame order: 2 banks for 3min
