@@ -1,5 +1,6 @@
 include "hram.asm"
 include "macros.asm"
+include "ioregs.asm"
 
 
 SECTION "Main video update loop", ROM0
@@ -36,11 +37,11 @@ SECTION "Main video update loop", ROM0
 
 ; Sets A, B to volumes. Sets (rom bank, HL) to next audio sample pair.
 ; Clobbers E.
-CYC_PREPARE_VOLUMES EQU 32
+CYC_PREPARE_VOLUMES EQU 30
 PrepareVolumes: MACRO
 	; load bank
 	ld A, [AudioBank]
-	ld [$2000], A
+	ld [DE], A ; note D is $20 so DE is $2000-$20ff
 	; HL = addr
 	ld A, [AudioAddr]
 	ld H, A
@@ -98,13 +99,12 @@ ENDM
 ; Prepares palette index reg for auto-increment starting at 0.
 ; Expects SP to point to the address of the next palette group index.
 ; Clobbers DE.
-CYC_PREPARE_PALETTE_COPY EQU 23
+CYC_PREPARE_PALETTE_COPY EQU 20
 PreparePaletteCopy: MACRO
 	ld A, %10000000 ; index 0, and auto-increment on write
 	ld [TileGridPaletteIndex], A
 	ld C, LOW(TileGridPaletteData)
 	ld A, [FrameBank]
-	ld DE, $2000
 	ld [DE], A ; load frame bank
 	pop HL ; load palette group addr into HL, point SP to (bank, 0)
 	pop AF ; load palette group bank into A, point SP to next addr
@@ -116,12 +116,17 @@ ENDM
 ;	cycles until audio switchover: CYC_PREPARE_VOLUMES + 3
 ;	cycles until hblank: CYC_PREPARE_VOLUMES + CYC_UPDATE_SAMPLE + CYC_PREPARE_PALETTE_COPY + 3
 ;	SP = address of first palette group index in current frame.
+;	D = $20-$3f
+;	C = LOW(TileGridPaletteData) = $69
 ; upon exit:
 ;	cycles until audio switchover: 114 - 4*(32-palette_loops) - 8
 ;	cycles until last hblank that runs into vblank: 228 - (128 + 4 + padding + 8)
 ; Clobbers *SP*
 LineLoop: MACRO
 .line_loop
+	; Persistent register usage across loops:
+	; C = LOW(TileGridPaletteData) so we can write palettes fast
+	; D = $20 so that DE is in range $2000-$20ff so we can change banks by writing to it.
 
 	; Sets A, B to first, second volume.
 	; Sets HL to current audio data offset + 1 and loads current audio data bank.

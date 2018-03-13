@@ -8,4 +8,7 @@ AudioBank rb 1
 ; Current audio sample address (within banked ROM, so $4000-$8000), big-endian.
 AudioAddr rb 2
 
+; Current frame's bank
+FrameBank rb 1
+
 ENDC

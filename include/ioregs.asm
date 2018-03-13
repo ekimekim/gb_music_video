@@ -165,7 +165,7 @@ ScrollX EQU $ff43
 ; is drawing. Contains values 0-143 while drawing, 144-153 during VBlank.
 ; Writing to this register will set it to 0.
 ; You should probably just never touch this unless you're doing something funky.
-LCDYCoordiate EQU $ff44
+LCDYCoordinate EQU $ff44
 ; "LYC" LCD Y-coordinate comparison register. Is used when deciding whether to trigger an interrupt,
 ; see STAT register.
 LCDYCompare EQU $ff45
