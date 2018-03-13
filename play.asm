@@ -231,21 +231,13 @@ DetermineNextFrame: MACRO
 ENDM
 
 ; Perform a DMA of \2 * 16 bytes from SP + 16 to HL, advancing both if \1 > 0.
-; Clobbers HL. Max \2 == 128.
-; \3 must be \2 of previous DMA
+; Clobbers HL. Max \2 == 7.
 ; Note: Different cycle counts for with and without advancing pointers
 ; Note: Cycle counts don't include the 16 * \2 cycles of actual DMA time
-CYC_DMA_NO_UPDATE EQU 23
-CYC_DMA EQU CYC_DMA_NO_UPDATE + 8
+CYC_DMA_NO_UPDATE EQU 17
+CYC_DMA EQU CYC_DMA_NO_UPDATE + 10
 DMA: MACRO
-	ld HL, SP + $10 * (\3) ; HL = dest addr
-IF (\1) > 0
-	ld SP, HL ; update SP for next
-ENDC
-	ld A, H
-	ld [CGBDMASourceHi], A
-	ld A, L
-	ld [CGBDMASourceLo], A
+	ld [CGBDMASourceHi], SP ; TODO does it store big or little endian?
 	ld HL, CGBDMADestHi
 	ld A, D
 	ld [HL+], A ; dest hi
@@ -253,6 +245,7 @@ ENDC
 	ld [HL+], A ; dest lo
 	ld [HL], (\2) - 1 ; initiate transfer of \1 * 16 bytes
 IF (\1) > 0
+	add SP, $10 * (\2)
 	LongAdd DE, $10 * (\2), DE ; this is the fastest I have, ADD HL is longer due to copying back into DE.
 ENDC
 ENDM
