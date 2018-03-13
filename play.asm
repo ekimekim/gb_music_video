@@ -39,7 +39,7 @@ SECTION "Main video update loop", ROM0
 ; Sets A, B to volumes. Sets (rom bank, HL) to next audio sample pair.
 ; Expects D = $20-$2f
 ; Clobbers E.
-CYC_PREPARE_VOLUMES EQU 30
+CYC_PREPARE_VOLUMES EQU 27
 PrepareVolumes: MACRO
 	; load bank
 	ld A, [AudioBank]
@@ -50,23 +50,21 @@ PrepareVolumes: MACRO
 	ld A, [AudioAddr+1]
 	ld L, A
 	; load second volume first
-	ld A, [HL]
+	ld A, [HL+]
+	ld E, A
 	and $0f ; select second volume
 	ld B, A
 	swap A
 	or B
-	ld B, A ; B = second volume, copied to both nibbles
-	; load first volume
-	ld A, [HL+] ; HL now points at next audio sample pair
-	and $f0 ; select first volume
-	ld E, A
-	swap A
-	or E ; A = first volume, copied to both 
+	ld B, A ; A = B = second volume, copied to both nibbles
+	xor E ; A = (2nd^1st, 2nd^2nd) = (1st^2nd, 0)
+	swap A ; A = (0, 1st^2nd)
+	xor E ; A = (0^1st, 1st^2nd^2nd) = (1st, 1st)
 ENDM
 
 ; As PrepareVolumes but expects H = $20-2f instead of D,
 ; and doesn't clobber E. Longer.
-CYC_PREPARE_VOLUMES_SLOW EQU 31
+CYC_PREPARE_VOLUMES_SLOW EQU 30
 PrepareVolumesSlow: MACRO
 	; load bank
 	ld A, [AudioBank]
@@ -82,12 +80,10 @@ PrepareVolumesSlow: MACRO
 	ld B, A
 	swap A
 	or B
-	ld B, A ; B = second volume, copied to both nibbles
-	; load first volume
-	ld A, [HL]
-	swap A
-	xor [HL] ; both nibbles = first vol ^ second vol
-	xor B ; both nibbles = first vol ^ second vol ^ second vol = first vol
+	ld B, A ; A = B = second volume, copied to both nibbles
+	xor [HL] ; A = (2nd^1st, 2nd^2nd) = (1st^2nd, 0)
+	swap A ; A = (0, 1st^2nd)
+	xor [HL] ; A = (0^1st, 1st^2nd^2nd) = (1st, 1st)
 	inc HL
 ENDM
 
