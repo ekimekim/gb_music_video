@@ -1,0 +1,37 @@
+{ "frames": {
+   "00_Trumpet 0.ase": {
+    "frame": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "00_Trumpet 1.ase": {
+    "frame": { "x": 160, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.2.6-x64",
+  "image": "D:\\SleepyParadox\\gb_music_video\\assets\\00_Trumpet.png",
+  "format": "I8",
+  "size": { "w": 320, "h": 144 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "Background", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 2", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 3", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}
