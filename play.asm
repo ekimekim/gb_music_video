@@ -27,7 +27,7 @@ SECTION "Main video update loop", ROM0
 ;
 ; High-level overview of vblank, without audio updates:
 ;	(starting while writing last line of prev frame)
-;	determine next frame to display
+;	load next frame to display
 ;	h-blank of last line begins (VRAM is writable from here to end of vblank)
 ;	Write 19 rows (38 * 16 bytes) of tile indexes to background map bank 0 using DMA
 ;	Write 19 rows (38 * 16 bytes) of tile flags to background map bank 1 using DMA
@@ -62,17 +62,16 @@ _PrepareVolumes: MACRO
 ENDM
 
 ; Sets A, B to volumes. Sets (rom bank, HL) to next audio sample pair.
-; Expects D = $20
+; Expects D = $20-$2f
 ; Clobbers E.
 CYC_PREPARE_VOLUMES EQU 30
 PrepareVolumes: MACRO
 	_PrepareVolumes DE
 ENDM
 
-; As PrepareVolumes but doesn't use D. Slightly longer as a result.
-CYC_PREPARE_VOLUMES_NO_D EQU CYC_PREPARE_VOLUMES + 2
-PrepareVolumesNoD: MACRO
-	_PrepareVolumes $2000
+; As PrepareVolumes but expects H = $20-2f instead of D.
+PrepareVolumesH: MACRO
+	_PrepareVolumes HL
 ENDM
 
 
@@ -210,7 +209,36 @@ line_spare = 228 - line_total
 ENDM
 
 
-DetermineNextFrame:
+; Load next frame addr - 16 into SP, along with its bank into C. Clears ROM bank high bit.
+; Sets HL up for bank loading.
+DetermineNextFrame: MACRO
+ENDM
+
+; Perform a DMA of \2 * 16 bytes from SP + 16 to HL, advancing both if \1 > 0.
+; Clobbers HL. Max \2 == 128.
+; Note: Different cycle counts for with and without advancing pointers
+; Note: Cycle counts don't include the 16 * \2 cycles of actual DMA time
+CYC_DMA_0 EQU 23
+CYC_DMA_1 EQU CYC_DMA_0 + 8
+DMA: MACRO
+	ld HL, SP + 16 ; HL = dest addr
+IF (\1) > 0
+	ld SP, HL ; update SP for next
+ENDC
+	ld A, H
+	ld [CGBDMASourceHi], A
+	ld A, L
+	ld [CGBDMASourceLo], A
+	ld HL, CGBDMADestHi
+	ld A, D
+	ld [HL+], A ; dest hi
+	ld A, E
+	ld [HL+], A ; dest lo
+	ld [HL], (\1) - 1 ; initiate transfer of \1 * 16 bytes
+IF (\1) > 0
+	LongAdd DE, $10, DE ; this is the fastest I have, ADD HL is longer due to copying back into DE.
+ENDC
+ENDM
 
 
 ; Entry conditions:
@@ -227,24 +255,34 @@ VBlank: MACRO
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, E and rom bank
 	PrepareVolumes
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch
+	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144)
 	UpdateSample
 
-	; Load next frame into DE, along with its bank into C
-	DetermineFrameA
+	; Load next frame addr - 16 into SP, along with its bank into C. Clears ROM bank high bit.
+	; Sets HL up for bank loading.
+	DetermineFrame
+
+	; Set up DE as destination addr, load correct banks
+	ld A, C
+	ld [HL], A ; load frame bank
+	xor A
+	ld [CGBVRAMBank], A ; load vram bank 0
+	ld DE, TileGrid - 16 + 1 ; +1 is ignored but means we can use E as a value with bottom bit set
+	; We need to do a total of 38 16-byte blocks of DMA for this first half.
 
 	; Pad to 4 cycles before audio switch
 	Wait ((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME_A
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 144.5)
 
-	; Second half of DetermineFrame, max 114 - CYC_PREPARE_VOLUMES_NO_D - 3
-	DetermineFrameB
+	cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_H + 3 + ??)
 
-	; Pad to CYC_PREPARE_VOLUMES_NO_D + 3 before audio switch
-	Wait ((114 - CYC_PREPARE_VOLUMES_NO_D) - 3) - CYC_DETERMINE_FRAME_B
+	TODO DMA
 
+	ld H, $30
+	ld [HL], E ; E's bottom bit is set, so this sets rom bank high bit
+	PrepareVolumeH
 	
 
 
