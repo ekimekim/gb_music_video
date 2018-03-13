@@ -36,8 +36,11 @@ SECTION "Main video update loop", ROM0
 ;	Set up for line loop
 
 
-; Used by PrepareVolumes and PrepareVolumesNoD
-_PrepareVolumes: MACRO
+; Sets A, B to volumes. Sets (rom bank, HL) to next audio sample pair.
+; Expects D = $20-$2f
+; Clobbers E.
+CYC_PREPARE_VOLUMES EQU 30
+PrepareVolumes: MACRO
 	; load bank
 	ld A, [AudioBank]
 	ld [DE], A ; note D is $20 so DE is $2000-$20ff
@@ -61,23 +64,36 @@ _PrepareVolumes: MACRO
 	or E ; A = first volume, copied to both 
 ENDM
 
-; Sets A, B to volumes. Sets (rom bank, HL) to next audio sample pair.
-; Expects D = $20-$2f
-; Clobbers E.
-CYC_PREPARE_VOLUMES EQU 30
-PrepareVolumes: MACRO
-	_PrepareVolumes DE
-ENDM
-
-; As PrepareVolumes but expects H = $20-2f instead of D.
-PrepareVolumesH: MACRO
-	_PrepareVolumes HL
+; As PrepareVolumes but expects H = $20-2f instead of D,
+; and doesn't clobber E. Longer.
+CYC_PREPARE_VOLUMES_SLOW EQU 31
+PrepareVolumesSlow: MACRO
+	; load bank
+	ld A, [AudioBank]
+	ld [HL], A ; note H is $20-$2f so HL is $2000-$2fff
+	; HL = addr
+	ld A, [AudioAddr]
+	ld H, A
+	ld A, [AudioAddr+1]
+	ld L, A
+	; load second volume first
+	ld A, [HL]
+	and $0f ; select second volume
+	ld B, A
+	swap A
+	or B
+	ld B, A ; B = second volume, copied to both nibbles
+	; load first volume
+	ld A, [HL]
+	swap A
+	xor [HL] ; both nibbles = first vol ^ second vol
+	xor B ; both nibbles = first vol ^ second vol ^ second vol = first vol
+	inc HL
 ENDM
 
 
 ; Expects HL = next audio sample. writes it to wave ram, checks for bank change
 ; and writes new values back to HRAM.
-; Clobbers E.
 ; For uniqueness, takes an int \1, which needs a matching _UpdateSampleExtra elsewhere.
 CYC_UPDATE_SAMPLE EQU 25
 UpdateSample: MACRO
@@ -216,12 +232,13 @@ ENDM
 
 ; Perform a DMA of \2 * 16 bytes from SP + 16 to HL, advancing both if \1 > 0.
 ; Clobbers HL. Max \2 == 128.
+; \3 must be \2 of previous DMA
 ; Note: Different cycle counts for with and without advancing pointers
 ; Note: Cycle counts don't include the 16 * \2 cycles of actual DMA time
-CYC_DMA_0 EQU 23
-CYC_DMA_1 EQU CYC_DMA_0 + 8
+CYC_DMA_NO_UPDATE EQU 23
+CYC_DMA EQU CYC_DMA_NO_UPDATE + 8
 DMA: MACRO
-	ld HL, SP + 16 ; HL = dest addr
+	ld HL, SP + $10 * (\3) ; HL = dest addr
 IF (\1) > 0
 	ld SP, HL ; update SP for next
 ENDC
@@ -234,9 +251,9 @@ ENDC
 	ld [HL+], A ; dest hi
 	ld A, E
 	ld [HL+], A ; dest lo
-	ld [HL], (\1) - 1 ; initiate transfer of \1 * 16 bytes
+	ld [HL], (\2) - 1 ; initiate transfer of \1 * 16 bytes
 IF (\1) > 0
-	LongAdd DE, $10, DE ; this is the fastest I have, ADD HL is longer due to copying back into DE.
+	LongAdd DE, $10 * (\2), DE ; this is the fastest I have, ADD HL is longer due to copying back into DE.
 ENDC
 ENDM
 
@@ -273,16 +290,35 @@ VBlank: MACRO
 	; Pad to 4 cycles before audio switch
 	Wait ((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME_A
 
+	; Some calculations for this loop
+	dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_SLOW + 5 + 3) ; 5 for setting high bit, 3 for volume update
+	dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE + 7) ; 7 for resetting rom bank
+
+	dma_blocks_before_sound = (dma_cycles_before_sound - CYC_DMA) % 16
+	dma_blocks_between_sound = (dma_cycles_before_sound - CYC_DMA) % 16
+
 	ld A, B
 	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 144.5)
 
-	cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_H + 3 + ??)
 
 	TODO DMA
 
+	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	ld H, $30
 	ld [HL], E ; E's bottom bit is set, so this sets rom bank high bit
-	PrepareVolumeH
+	dec H ; this puts H into a good value for PrepareVolumesSlow
+	PrepareVolumesSlow
+	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 145)
+	UpdateSample
+
+	; Now we set bank back
+	ld H, $30
+	ld [HL], A ; A will always be 0 here as its used to set new low value of AudioAddr, so reset rom bank high bit.
+	dec H ; H = $2f
+	ld [HL], C ; load frame bank
+
+	TODO DMA
+
 	
 
 
