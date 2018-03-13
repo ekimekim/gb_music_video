@@ -35,14 +35,6 @@ namespace animparse.Frames
 
         static void WriteRomData(this StreamWriter writer, RomData romData)
         {
-            // ugg lets try
-            // writer
-            // 8 frames
-
-            // tile
-            // 8 palette
-            // pick one
-
             writer.WritePaletteGroups(romData);
 
             writer.WriteTextures(romData);
@@ -106,8 +98,7 @@ namespace animparse.Frames
                             writer.Write(", ");
                         writer.Write(flags.ToString());
                     }
-
-                    writer.Write(" ");
+                    writer.WriteLine();
                     writer.WritePadding(TileRowBytes - Frame.Width);
                 }
             }
@@ -163,7 +154,7 @@ namespace animparse.Frames
             {
                 var colorMask = (color[0]) | (color[1] << 5) | (color[2] << 10);
 
-                var line = "dw `";
+                var line = "dw %";
                 for (int i = 15; i > 0; --i)
                 {
                     var writerMask = 1 << i;
