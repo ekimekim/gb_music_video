@@ -36,8 +36,8 @@ palette group data:
 
 rom texture data:
 	List of textures, 16 bytes each.
-	textures are referred to by their index into this list.
-	This is called the *texture rom index* and is a 2-byte value.
+	textures are referred to by their bank and address within each bank,
+	called the *texture rom bank* and *texture rom address*.
 	textures are as per normal gameboy texture format, ie:
 		Each row of 8 pixels is defined by two bytes.
 		The first byte defines the lower bits of the pixel values,
@@ -85,21 +85,23 @@ frame data:
 		List of load orders:
 			A load order happens before the frame and indicates what textures should be loaded into
 			VRAM. It consists of two parts:
-				The source index:
-					The texture rom index of the first texture to copy.
+				The source bank:
+					The texture rom bank to copy from.
+				The source address:
+					The texture rom address of the first texture to copy.
 				The destination bank:
 					Either 0 or 1, the texture vram bank to load the textures into
 				The destination index:
 					The texture vram index of the first index to copy into
 				Length:
 					How many textures to copy. Up to 128.
-			So, for example, if you wanted to copy textures 5-19 from ROM into VRAM bank 0 indexes 30-44,
-			and textures 300-301 from ROM into VRAM bank 1 indexes 254-255, you would do this:
+			So, for example, if you wanted to copy textures 5-19 from ROM bank 2 into VRAM bank 0 indexes 30-44,
+			and textures 20-21 from ROM bank 3 into VRAM bank 1 indexes 254-255, you would do this:
 				2 (two load orders to do)
-				0, 5 (first source starts at 5)
+				2, $40, $50 (first source starts at bank 2, addr $4000 + 5 * 16 bytes = $4050)
 				0, 30 (dest bank 0, index starts at 30)
 				15 (fifteen textures to copy)
-				1, 44 (second source starts at 300)
+				1, $42, 0 (second source starts at bank 3, addr $4000 + 20 * 16 bytes = $4200)
 				1, 254 (dest bank 1, index starts at 254)
 				2 (two textures to copy)
 			NOTE: There is a timing limit here based on both the number of load orders and
@@ -107,7 +109,5 @@ frame data:
 			For example, you can do 50 textures in one load order,
 			or 49 spread over two, or 48 spread over three, etc,
 			down to 25 load orders of 1 texture each.
-			NOTE: Load orders cannot cross bank boundaries. This means texture index values which are multiples
-			of 1024. For example, this would be an invalid load order: "load 4 textures starting at 1022".
 		The remaining bytes up to 2048 are unused padding
-			You can calculate how many bytes to use as: 312 - <number of load orders> * 5
+			You can calculate how many bytes to use as: 312 - <number of load orders> * 6
