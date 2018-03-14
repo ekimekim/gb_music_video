@@ -238,9 +238,9 @@ CGBVRAMBank EQU $ff4f
 ; eg. to transfer 256 bytes would be 256/16 - 1 = 15, and we can request lengths in the range from
 ; 16 to 2048 bytes.
 ; The top bit of the control register selects the transfer mode, which is one of:
-; General Purpose DMA: The program is halted until the transfer is complete, and normal issues around
+; 0: General Purpose DMA: The program is halted until the transfer is complete, and normal issues around
 ;   timing of VRAM writes apply. The final value of the Control register will be $ff.
-; H-Blank DMA: One 16-byte block is transferred per H-Blank period. Execution is paused while this
+; 1: H-Blank DMA: One 16-byte block is transferred per H-Blank period. Execution is paused while this
 ;	occurs but otherwise proceeds as normal. You may not modify the src/dest registers or switch
 ;   banks being read from or written to.
 ;   During the transfer, Control register will contain the value (number of blocks left - 1),
@@ -250,6 +250,8 @@ CGBVRAMBank EQU $ff4f
 ; In both modes, transfer of one block takes 2^-17s, which is 8 cycles in normal mode or 16 in fast mode.
 ; Some ROM carts may not support DMA due to not being able to handle the high speeds. There is no reliable
 ; way to check for this.
+; After each DMA, source and dest fields are updated to their values + the amount copied.
+; In the case of dest, the ignored top 3 bits are reset.
 CGBDMASourceHi EQU $ff51
 CGBDMASourceLo EQU $ff52
 CGBDMADestHi EQU $ff53
