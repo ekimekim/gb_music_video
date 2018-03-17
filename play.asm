@@ -223,10 +223,11 @@ ENDM
 ; Load next frame addr into CGBDMASource, along with its bank into E.
 ; Clears ROM bank high bit and clobbers bank.
 ; Sets D up for bank loading.
-CYC_DETERMINE_FRAME EQU 70
+CYC_DETERMINE_FRAME EQU 50
 DetermineFrame: MACRO
 	ld D, $30
 	xor A
+	ld [CGBDMASourceLo], A ; need to do this at some point, and A = 0 here anyway
 	ld [DE], A ; clear ROM bank high bit
 	dec D ; DE now set up for bank loading
 	ld A, [FrameListBank]
@@ -237,9 +238,9 @@ DetermineFrame: MACRO
 	ld A, [FrameListAddr + 1]
 	ld L, A ; HL = frame list addr
 	ld A, [HL+]
-	ld B, A
+	ld E, A ; first byte is bank
 	ld A, [HL+]
-	ld C, A ; BC = next frame index
+	ld [CGBDMASourceHi], A ; second byte is address upper byte
 	ld A, L
 	ld [FrameListAddr+1], A ; store lower part of updated HL
 	ld A, H
@@ -251,25 +252,6 @@ DetermineFrame: MACRO
 	inc A
 	ld [FrameListBank], A
 .after_frame_list_bank_change
-	; anyway, now we have BC = frame index.
-	; we need to transform by taking bottom 3 bits * $800 as addr,
-	; and top 8 bits as bank.
-	; In particular, where input is 0000 0bbb bbbb baaa
-	; addr = 01aa a000 0000 0000 and bank = bbbb bbbb.
-	xor A
-	ld [CGBDMASourceLo], A
-	; shift BCA down 3 times
-	REPT 3
-	srl B
-	rr C
-	rra
-	ENDR
-	; now C = index, A = aaa0 0000
-	inc A ; A = aaa0 0001
-	rrca
-	rrca ; A = 01aa a000 = top half of addr
-	ld E, C
-	ld [CGBDMASourceHi], A
 ENDM
 
 _DetermineFrameExtra: MACRO

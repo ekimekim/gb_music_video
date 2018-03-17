@@ -120,6 +120,12 @@ frame data:
 frame order list:
 	A list of frame indexes, indicating the order in which they should be played.
 	Each index is displayed for one frame (1/59.7275th of a second).
+	Frame indexes are encoded as:
+		bbbbbbbb 01aaa000
+	where the actual index is:
+		00000bbb bbbbbaaa
+	What this is actually doing, because there are 8 frames to a bank, is storing the frame
+	as (bank, address upper byte).
 
 Bank locations:
 	Audio data, palette change list and palette groups must be in *high banks* 256-511.
