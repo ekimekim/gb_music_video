@@ -1,0 +1,98 @@
+{ "frames": {
+   "frames 0.ase": {
+    "frame": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 1.ase": {
+    "frame": { "x": 160, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 2.ase": {
+    "frame": { "x": 320, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 3.ase": {
+    "frame": { "x": 480, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 4.ase": {
+    "frame": { "x": 640, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 5.ase": {
+    "frame": { "x": 800, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 6.ase": {
+    "frame": { "x": 960, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 7.ase": {
+    "frame": { "x": 1120, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 8.ase": {
+    "frame": { "x": 1280, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   },
+   "frames 9.ase": {
+    "frame": { "x": 1440, "y": 0, "w": 160, "h": 144 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 144 },
+    "sourceSize": { "w": 160, "h": 144 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "http://www.aseprite.org/",
+  "version": "1.2.6-x64",
+  "image": "D:\\SleepyParadox\\gb_music_video\\assets\\frames.png",
+  "format": "I8",
+  "size": { "w": 1600, "h": 144 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "Background", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}
