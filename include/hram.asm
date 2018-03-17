@@ -12,4 +12,10 @@ AudioAddr rb 2
 ; Bank containing the palette change list for the current frame
 PaletteChangeBank rb 1
 
+; High byte of starting address for palette change list for current frame
+PaletteChangeAddr rb 1
+
+; Bank containing the palette group for the frame-wide palette
+PaletteGroupBank rb 1
+
 ENDC

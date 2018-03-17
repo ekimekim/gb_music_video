@@ -173,7 +173,7 @@ PreparePaletteCopy: MACRO
 	ld [TileGridPaletteIndex], A
 	ld C, LOW(TileGridPaletteData)
 	ld A, [PaletteChangeBank]
-	ld [DE], A ; load frame bank
+	ld [DE], A ; load palette change bank
 	pop HL ; load palette group addr into HL, point SP to (bank, half of next addr)
 	pop AF ; load palette group bank into A, point SP to 1 past next addr
 	add SP, -1 ; point SP to next addr
@@ -267,6 +267,7 @@ ENDM
 ; Load next frame addr into CGBDMASource, along with its bank into E.
 ; Clears ROM bank high bit and clobbers bank.
 ; Sets D up for bank loading.
+; Sets PaletteChangeBank and PaletteChangeAddr.
 ; Can't clobber B.
 CYC_DETERMINE_FRAME EQU 50
 DetermineFrame: MACRO
@@ -307,12 +308,21 @@ _DetermineFrameExtra: MACRO
 	jp .after_frame_list_bank_change
 ENDM
 
+
 ; Perform a DMA of \1 * 16 bytes from CGBDMASource to CGBDMADest
 ; Note: Cycle count doesn't include the 16 * \1 cycles of actual DMA time
 CYC_DMA EQU 4
 DMA: MACRO
 	ld A, (\1) - 1
 	ld [C], A
+ENDM
+
+
+; Set scroll values for frame, loads palette group bank into PaletteChangeBank (and loads it),
+; sets top bit of rom bank, sets HL to address of first palette,
+; sets up palette data to write palettes 4-7, sets D to 20-2f so DE writes rom bank.
+LoadFrameMisc: MACRO
+	; TODO
 ENDM
 
 
@@ -493,7 +503,58 @@ n = n + 1
 
 	DMA 2 ; 38 blocks copied.
 
-	; TODO UPTO
+	; Set scroll values for frame, loads palette group bank into PaletteGroupBank (and loads it),
+	; sets top bit of rom bank, sets HL to address of first palette,
+	; sets up palette data to write palettes 4-7, sets D to 20-2f so DE writes rom bank.
+	LoadFrameMisc
+	; Note we now switch back to line loop versions of audio macros
+
+	; 16*2 for two blocks
+	Wait dma_cycles_between_sound - (16 * 2 + CYC_DMA + CYC_LOAD_FRAME_MISC)
+
+	ld A, B
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 152.5)
+
+	; 3 for volume update, 2 for saving HL, 2 for setting C.
+vblank_palette_copy_cycles = 114 - (CYC_PREPARE_VOLUMES + 3 + 2 + 2)
+vblank_palette_loops = vblank_palette_copy_cycles / 4
+vblank_palette_padding = vblank_palette_copy_cycles % 4
+
+	PRINTT "VBlank palette loop: {vblank_palette_loops} + {vblank_palette_padding} padding"
+
+	ld C, LOW(TileGridPaletteData)
+
+	REPT vblank_palette_loops
+	ld A, [HL+] ; load next byte of palette data and increment
+	ld [C], A ; write it to palette data reg and auto-increment
+	ENDR
+
+	ld SP, HL ; save HL
+
+	Wait vblank_palette_padding
+
+	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and E.
+	PrepareVolumes
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 153)
+	UpdateSample 2
+
+	ld HL, SP ; load HL
+	ld A, [PaletteGroupBank]
+	ld [DE], A ; load palette group bank
+
+	REPT 32 - vblank_palette_loops
+	ld A, [HL+] ; load next byte of palette data and increment
+	ld [C], A ; write it to palette data reg and auto-increment
+	ENDR
+
+	; Final prep for line loop
+	ld A, [PaletteChangeAddr]
+	ld H, A
+	xor A
+	ld L, A
+	ld SP, HL
+
+	; TODO upto pad until appointed time
 
 ENDM
 
