@@ -264,10 +264,10 @@ ENDM
 
 ; Perform a DMA of \1 * 16 bytes from CGBDMASource to CGBDMADest
 ; Note: Cycle count doesn't include the 16 * \1 cycles of actual DMA time
-CYC_DMA_NO_UPDATE EQU 5
+CYC_DMA EQU 4
 DMA: MACRO
 	ld A, (\1) - 1
-	ld [CGBDMAControl], A
+	ld [C], A
 ENDM
 
 
@@ -286,7 +286,7 @@ VBlank: MACRO
 	; Do audio update and populate B with next volume. Clobbers A, HL, E and rom bank
 	PrepareVolumes
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144)
-	UpdateSample
+	UpdateSample 1
 
 	; Load next frame addr into CGBDMASource, along with its bank into E.
 	; Clears ROM bank high bit and clobbers bank.
@@ -318,14 +318,17 @@ VBlank: MACRO
 	Wait (((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME) - 17
 
 	; Some calculations for this loop TODO update
-	dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_SLOW + 5 + 3) ; 5 for setting high bit, 3 for volume update
-	dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE + 7) ; 7 for resetting rom bank
+dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_SLOW + 2 + 3) ; 2 for setting high bit, 3 for volume update
+dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE + 7) ; 7 for resetting rom bank
 
-	dma_blocks_before_sound = (dma_cycles_before_sound - CYC_DMA) / 16
-	dma_blocks_between_sound = (dma_cycles_before_sound - CYC_DMA) / 16
+dma_blocks_before_sound = (dma_cycles_before_sound - CYC_DMA) / 16
+dma_blocks_between_sound = (dma_cycles_between_sound - CYC_DMA) / 16
 
-	dma_padding_before_sound = (dma_cycles_before_sound - CYC_DMA) % 16
-	dma_padding_between_sound = (dma_cycles_before_sound - CYC_DMA) % 16
+dma_padding_before_sound = (dma_cycles_before_sound - CYC_DMA) % 16
+dma_padding_between_sound = (dma_cycles_between_sound - CYC_DMA) % 16
+
+	PRINTT "before: {dma_blocks_before_sound} with {dma_padding_before_sound} padding\n"
+	PRINTT "between: {dma_blocks_between_sound} with {dma_padding_between_sound} padding\n"
 
 	ld A, B
 	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 144.5)
@@ -337,7 +340,7 @@ VBlank: MACRO
 	ld [HL], C ; C's bottom bit is set, so this sets rom bank high bit
 	PrepareVolumesSlow
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 145)
-	UpdateSample
+	UpdateSample 2
 
 	; Now we set bank back
 	ld H, $30
@@ -355,6 +358,8 @@ ENDM
 Play::
 	; TODO
 	LineLoop
+	VBlank
 
-	_UpdateSampleExtra
-
+	_UpdateSampleExtra 1
+	_UpdateSampleExtra 2
+	_DetermineFrameExtra
