@@ -210,7 +210,7 @@ LineLoop: MACRO
 	; AUDIO SAMPLE SWITCH
 
 	; Writes next audio sample and advances audio data offset, updates bank if needed.
-	UpdateSample
+	UpdateSample 1
 
 	; Sets HL, C for palette copy and loads palette group bank.
 	; Prepares palette index reg for auto-increment starting at 0.
@@ -388,19 +388,21 @@ IF dma_blocks_before_sound != 5 || dma_blocks_between_sound != 5
 	FAIL "Must fit 5 blocks of dma per half"
 ENDC
 
-	; For lines 144-146
+	; For lines 144.5-147
+n = 1
 	REPT 3
+n = n + 1
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 144 + N+.5)
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 144 + loop+.5)
 
 	DMA 5
 	Wait dma_padding_before_sound
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144 + N+1)
-	UpdateSampleVBlank 2
+	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144 + loop+1)
+	UpdateSampleVBlank n
 
 	; Now we set bank back
 	ld H, $30
@@ -423,7 +425,7 @@ ENDC
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 148)
-	UpdateSampleVBlank 2
+	UpdateSampleVBlank 5
 
 	; Now we set bank back
 	ld H, $30
@@ -432,10 +434,66 @@ ENDC
 	ld [HL], E ; load frame bank
 
 	DMA 3 ; 38 blocks copied. Now we need to switch to other VRAM bank, reset dest and copy next 38.
+	; Note the above sets A = 2
+	dec A ; A = 1
+	ld [CGBVRAMBank], A ; load VRAM bank 1
+	ld A, $98
+	ld [CGBDMADestHi], A
+	xor A
+	ld [CGBDMADestLo], A ; Dest = $9800
+	DMA 1 ; 1 block copied. 37 to go.
+
+	; We only copied 4 blocks, so add 16 to available time. But we have two DMA overheads.
+	Wait dma_padding_between_sound + 16 - (CYC_DMA + 13)
+
+	; For lines 148.5-151
+n = 5
+	REPT 3
+n = n + 1
+
+	ld A, B
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 148 + loop+.5)
+
+	DMA 5
+	Wait dma_padding_before_sound
+
+	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
+	PrepareVolumesVBlank
+	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 148 + loop+1)
+	UpdateSampleVBlank n
+
+	; Now we set bank back
+	ld H, $30
+	ld [HL], A ; A will always be 0 here as its used to set new low value of AudioAddr, so reset rom bank high bit.
+	dec H ; now HL is pointed to set bank
+	ld [HL], E ; load frame bank
+
+	DMA 5
+	Wait dma_padding_between_sound
+
+	ENDR
+	; Now 31 blocks copied.
+
+	ld A, B
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 151.5)
+
+	DMA 5 ; 36 blocks copied
+	Wait dma_padding_before_sound
+
+	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
+	PrepareVolumesVBlank
+	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 152)
+	UpdateSampleVBlank 9
+
+	; Now we set bank back
+	ld H, $30
+	ld [HL], A ; A will always be 0 here as its used to set new low value of AudioAddr, so reset rom bank high bit.
+	dec H ; now HL is pointed to set bank
+	ld [HL], E ; load frame bank
+
+	DMA 2 ; 38 blocks copied.
 
 	; TODO UPTO
-
-	Wait dma_padding_between_sound
 
 ENDM
 
