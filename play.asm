@@ -62,17 +62,15 @@ PrepareVolumes: MACRO
 	xor E ; A = (0^1st, 1st^2nd^2nd) = (1st, 1st)
 ENDM
 
-; As PrepareVolumes but doesn't clobber E. Longer.
-CYC_PREPARE_VOLUMES_SLOW EQU 30
-PrepareVolumesSlow: MACRO
+; As PrepareVolumes but doesn't clobber E. Longer. Uses SP,
+; and expects SP = AudioAddr.
+CYC_PREPARE_VOLUMES_VBLANK EQU 30
+PrepareVolumesVBlank: MACRO
 	; load bank
 	ld A, [AudioBank]
 	ld [DE], A ; load bank
-	; HL = addr
-	ld A, [AudioAddr]
-	ld H, A
-	ld A, [AudioAddr+1]
-	ld L, A
+	; HL = addr and SP = AudioAddr+2
+	pop HL
 	; load second volume first
 	ld A, [HL]
 	and $0f ; select second volume
@@ -106,7 +104,6 @@ UpdateSample: MACRO
 	ld [AudioAddr+1], A
 .after_audio_bank_change_\1
 ENDM
-
 ; other branch of UpdateSample. Must take 18 cycles including the jumps here and back.
 _UpdateSampleExtra: MACRO
 .no_audio_bank_change_\1
@@ -117,6 +114,31 @@ _UpdateSampleExtra: MACRO
 	Wait 18 - 8 - 8 ; jumps = 8, instructions = 8
 	jp .after_audio_bank_change_\1
 ENDM
+
+
+; Variant of UpdateSample that expects SP = AudioAddr+2 and resets to to AudioAddr.
+CYC_UPDATE_SAMPLE_VBLANK EQU 22
+UpdateSampleVBlank: MACRO
+	ld A, [HL+] ; A = next sample
+	ld [SoundCh3Data], A ; write next sample
+	; check if HL >= 8000 by checking top bit of H
+	ld A, H
+	rla ; put top bit of H into c. ie. c is set if we should advance bank
+	jp nc, .no_audio_bank_change_\1
+	ld H, $40
+	push HL
+	ld HL, AudioBank
+	inc [HL]
+.after_audio_bank_change_\1
+ENDM
+; other branch of UpdateSampleVBlank. Must take 15 cycles including the jumps here and back.
+_UpdateSampleVBlankExtra: MACRO
+.no_audio_bank_change_\1
+	push HL
+	Wait 15 - 8 - 4 ; jumps = 8, instructions = 4
+	jp .after_audio_bank_change_\1
+ENDM
+
 
 
 ; Sets HL, C for palette copy and loads palette group bank.
@@ -304,6 +326,7 @@ VBlank: MACRO
 	;	We set H=$30 between UpdateSample and PrepareVolumes so [HL] writes upper bit of ROM bank
 
 	; Set up initial values not already set by DetermineFrame
+	ld SP, AudioAddr
 	ld C, LOW(CGBDMAControl)
 	ld H, $30
 	ld A, E
@@ -317,9 +340,9 @@ VBlank: MACRO
 	; Pad to 4 cycles before audio switch
 	Wait (((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME) - 17
 
-	; Some calculations for this loop TODO update
-dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_SLOW + 2 + 3) ; 2 for setting high bit, 3 for volume update
-dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE + 7) ; 7 for resetting rom bank
+	; Some calculations for this loop
+dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_VBLANK + 2 + 3) ; 2 for setting high bit, 3 for volume update
+dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE_VBLANK + 7) ; 7 for resetting rom bank
 
 dma_blocks_before_sound = (dma_cycles_before_sound - CYC_DMA) / 16
 dma_blocks_between_sound = (dma_cycles_between_sound - CYC_DMA) / 16
@@ -338,9 +361,9 @@ dma_padding_between_sound = (dma_cycles_between_sound - CYC_DMA) % 16
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	ld [HL], C ; C's bottom bit is set, so this sets rom bank high bit
-	PrepareVolumesSlow
+	PrepareVolumesVBlank
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 145)
-	UpdateSample 2
+	UpdateSampleVBlank 2
 
 	; Now we set bank back
 	ld H, $30
