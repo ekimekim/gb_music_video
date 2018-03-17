@@ -100,6 +100,9 @@ frame order list:
 		00000bbb bbbbbaaa
 	What this is actually doing, because there are 8 frames to a bank, is storing the frame
 	as (bank, address upper byte).
+	They are followed by the same index again, but this time encoded as bank and addr of
+	the palette change list:
+		00bbbbbb 01bbaaa0
 
 Bank locations:
 	Audio data, palette change list and palette groups must be in *high banks* 256-511.

@@ -7,6 +7,7 @@ RSSET $ff80
 AudioBank rb 1
 ; Current audio sample address (within banked ROM, so $4000-$8000).
 ; TODO Endianness is whichever makes "pop HL" work when SP = AudioAddr.
+; TODO if little, don't forget to update usage.
 AudioAddr rb 2
 
 ; Bank containing the palette change list for the current frame
@@ -17,5 +18,10 @@ PaletteChangeAddr rb 1
 
 ; Bank containing the palette group for the frame-wide palette
 PaletteGroupBank rb 1
+
+; Current frame list bank
+FrameListBank rb 1
+; Current frame list address (within banked ROM)
+FrameListAddr rb 2
 
 ENDC

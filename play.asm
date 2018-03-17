@@ -210,7 +210,7 @@ LineLoop: MACRO
 	; AUDIO SAMPLE SWITCH
 
 	; Writes next audio sample and advances audio data offset, updates bank if needed.
-	UpdateSample 1
+	UpdateSample $1
 
 	; Sets HL, C for palette copy and loads palette group bank.
 	; Prepares palette index reg for auto-increment starting at 0.
@@ -268,8 +268,8 @@ ENDM
 ; Clears ROM bank high bit and clobbers bank.
 ; Sets D up for bank loading.
 ; Sets PaletteChangeBank and PaletteChangeAddr.
-; Can't clobber B.
-CYC_DETERMINE_FRAME EQU 50
+; Can't clobber B. Clobbers C.
+CYC_DETERMINE_FRAME EQU 60
 DetermineFrame: MACRO
 	ld D, $30
 	xor A
@@ -277,7 +277,7 @@ DetermineFrame: MACRO
 	ld [DE], A ; clear ROM bank high bit
 	dec D ; DE now set up for bank loading
 	ld A, [FrameListBank]
-	ld E, A ; we'll need this later
+	ld C, A ; we'll need this later
 	ld [DE], A ; load frame list bank
 	ld A, [FrameListAddr]
 	ld H, A
@@ -287,6 +287,10 @@ DetermineFrame: MACRO
 	ld E, A ; first byte is bank
 	ld A, [HL+]
 	ld [CGBDMASourceHi], A ; second byte is address upper byte
+	ld A, [HL+]
+	ld [PaletteChangeBank], A ; third byte is palette change list bank
+	ld A, [HL+]
+	ld [PaletteChangeAddr], A ; fourth byte is palette change list addr upper
 	ld A, L
 	ld [FrameListAddr+1], A ; store lower part of updated HL
 	ld A, H
@@ -294,7 +298,7 @@ DetermineFrame: MACRO
 	jp nc, .no_frame_list_bank_change
 	ld A, $40
 	ld [FrameListAddr], A ; write new frame list addr value as $4000
-	ld A, E ; load bank from earlier
+	ld A, C ; load bank from earlier
 	inc A
 	ld [FrameListBank], A
 .after_frame_list_bank_change
@@ -321,6 +325,7 @@ ENDM
 ; Set scroll values for frame, loads palette group bank into PaletteChangeBank (and loads it),
 ; sets top bit of rom bank, sets HL to address of first palette,
 ; sets up palette data to write palettes 4-7, sets D to 20-2f so DE writes rom bank.
+CYC_LOAD_FRAME_MISC EQU 0 ; TODO
 LoadFrameMisc: MACRO
 	; TODO
 ENDM
@@ -330,6 +335,7 @@ ENDM
 ;	cycles until audio switchover: CYC_PREPARE_VOLMUES + line_spare + 6
 ;	cycles until start of last hblank before vblank: 88 - padding
 ;	cycles until start of vblank proper: 190 - padding
+;	D = $20-$2f
 ; upon exit:
 ;	cycles until audio switchover: CYC_PREPARE_VOLUMES + 3
 ;	cycles until end of vblank: 105 + CYC_PREPARE_VOLUMES + CYC_UPDATE_SAMPLE + CYC_PREPARE_PALETTE_COPY
@@ -343,7 +349,7 @@ vblank_start_padding = CYC_PREPARE_VOLUMES + line_spare + 6 - (CYC_PREPARE_VOLUM
 	; Do audio update and populate B with next volume. Clobbers A, HL, E and rom bank
 	PrepareVolumesTransition
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144)
-	UpdateSampleVBlank 1
+	UpdateSampleVBlank $2
 
 	; Load next frame addr into CGBDMASource, along with its bank into E.
 	; Clears ROM bank high bit and clobbers bank.
@@ -364,8 +370,7 @@ vblank_start_padding = CYC_PREPARE_VOLUMES + line_spare + 6 - (CYC_PREPARE_VOLUM
 	; Set up initial values not already set by DetermineFrame
 	ld C, LOW(CGBDMAControl)
 	ld H, $2f
-	ld A, E
-	ld [DE], A ; load frame bank
+	ld [HL], E ; load frame bank
 	xor A
 	ld [CGBVRAMBank], A ; load vram bank 0
 	ld [CGBDMADestLo], A
@@ -376,7 +381,7 @@ vblank_start_padding = CYC_PREPARE_VOLUMES + line_spare + 6 - (CYC_PREPARE_VOLUM
 	; Pad to 4 cycles before audio switch
 	; NOTE: if in final version we can drop above costs so this wait is 18c, then rearrange above
 	; so A = 0 as final value, then we can DMA 1 here.
-vblank_into_loop_padding = (((114 - CYC_UPDATE_SAMPLE_VBLANK) - 4) - CYC_DETERMINE_FRAME) - 21 ; 21 is for initial values setup
+vblank_into_loop_padding = (((114 - CYC_UPDATE_SAMPLE_VBLANK) - 4) - CYC_DETERMINE_FRAME) - 20 ; 20 is for initial values setup
 	Wait vblank_into_loop_padding
 	PRINTT "Padding for {vblank_into_loop_padding} before loop. If this is >=$12, we can fit a DMA here.\n"
 
@@ -399,7 +404,7 @@ IF dma_blocks_before_sound != 5 || dma_blocks_between_sound != 5
 ENDC
 
 	; For lines 144.5-147
-n = 1
+n = 2
 	REPT 3
 n = n + 1
 
@@ -412,7 +417,7 @@ n = n + 1
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144 + loop+1)
-	UpdateSampleVBlank n
+	UpdateSampleVBlank {n}
 
 	; Now we set bank back
 	ld H, $30
@@ -435,7 +440,7 @@ n = n + 1
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 148)
-	UpdateSampleVBlank 5
+	UpdateSampleVBlank $6
 
 	; Now we set bank back
 	ld H, $30
@@ -457,7 +462,7 @@ n = n + 1
 	Wait dma_padding_between_sound + 16 - (CYC_DMA + 13)
 
 	; For lines 148.5-151
-n = 5
+n = 6
 	REPT 3
 n = n + 1
 
@@ -470,7 +475,7 @@ n = n + 1
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 148 + loop+1)
-	UpdateSampleVBlank n
+	UpdateSampleVBlank {n}
 
 	; Now we set bank back
 	ld H, $30
@@ -493,7 +498,7 @@ n = n + 1
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 152)
-	UpdateSampleVBlank 9
+	UpdateSampleVBlank $A
 
 	; Now we set bank back
 	ld H, $30
@@ -510,7 +515,7 @@ n = n + 1
 	; Note we now switch back to line loop versions of audio macros
 
 	; 16*2 for two blocks
-	Wait dma_cycles_between_sound - (16 * 2 + CYC_DMA + CYC_LOAD_FRAME_MISC)
+	Wait dma_cycles_between_sound + (- (16 * 2 + CYC_DMA + CYC_LOAD_FRAME_MISC))
 
 	ld A, B
 	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 152.5)
@@ -520,7 +525,7 @@ vblank_palette_copy_cycles = 114 - (CYC_PREPARE_VOLUMES + 3 + 2 + 2)
 vblank_palette_loops = vblank_palette_copy_cycles / 4
 vblank_palette_padding = vblank_palette_copy_cycles % 4
 
-	PRINTT "VBlank palette loop: {vblank_palette_loops} + {vblank_palette_padding} padding"
+	PRINTT "VBlank palette loop: {vblank_palette_loops} + {vblank_palette_padding} padding\n"
 
 	ld C, LOW(TileGridPaletteData)
 
@@ -536,9 +541,9 @@ vblank_palette_padding = vblank_palette_copy_cycles % 4
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and E.
 	PrepareVolumes
 	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 153)
-	UpdateSample 2
+	UpdateSample $B
 
-	ld HL, SP ; load HL
+	ld HL, SP+0 ; load HL
 	ld A, [PaletteGroupBank]
 	ld [DE], A ; load palette group bank
 
@@ -554,16 +559,32 @@ vblank_palette_padding = vblank_palette_copy_cycles % 4
 	ld L, A
 	ld SP, HL
 
-	; TODO upto pad until appointed time
+	; 8 before palette loops, 4 per loop, 8 after palette loops
+vblank_end_padding = 114 - (CYC_UPDATE_SAMPLE + 8 + 4 * (32 - vblank_palette_loops) + 8)
+	PRINTT "VBlank end padding: {vblank_end_padding}\n"
+
+	ld A, B
+	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 153.5)
+
+	; wait until the timing for starting line loop is right, including 4 for outside loop.
+	Wait 114 - (CYC_PREPARE_VOLUMES + 3 + 4)
 
 ENDM
 
 
 Play::
-	; TODO
+	jp .start
+.frame_loop
 	LineLoop
+.start
 	VBlank
+	jp .frame_loop
 
-	_UpdateSampleExtra 1
-	_UpdateSampleExtra 2
+	_UpdateSampleExtra $1
+n = 1
+	REPT 9
+n = n + 1
+	_UpdateSampleVBlankExtra {n}
+	ENDR
+	_UpdateSampleExtra $B
 	_DetermineFrameExtra
