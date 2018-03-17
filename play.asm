@@ -62,13 +62,12 @@ PrepareVolumes: MACRO
 	xor E ; A = (0^1st, 1st^2nd^2nd) = (1st, 1st)
 ENDM
 
-; As PrepareVolumes but expects H = $20-2f instead of D,
-; and doesn't clobber E. Longer.
+; As PrepareVolumes but doesn't clobber E. Longer.
 CYC_PREPARE_VOLUMES_SLOW EQU 30
 PrepareVolumesSlow: MACRO
 	; load bank
 	ld A, [AudioBank]
-	ld [HL], A ; note H is $20-$2f so HL is $2000-$2fff
+	ld [DE], A ; load bank
 	; HL = addr
 	ld A, [AudioAddr]
 	ld H, A
@@ -221,10 +220,64 @@ line_spare = 228 - line_total
 ENDM
 
 
-; Load next frame addr - 16 into CGBDMASource, along with its bank into C.
-; Clears ROM bank high bit.
-; Sets HL up for bank loading.
-DetermineNextFrame: MACRO
+; Load next frame addr into CGBDMASource, along with its bank into E.
+; Clears ROM bank high bit and clobbers bank.
+; Sets D up for bank loading.
+CYC_DETERMINE_FRAME EQU 70
+DetermineFrame: MACRO
+	ld D, $30
+	xor A
+	ld [DE], A ; clear ROM bank high bit
+	dec D ; DE now set up for bank loading
+	ld A, [FrameListBank]
+	ld E, A ; we'll need this later
+	ld [DE], A ; load frame list bank
+	ld A, [FrameListAddr]
+	ld H, A
+	ld A, [FrameListAddr + 1]
+	ld L, A ; HL = frame list addr
+	ld A, [HL+]
+	ld B, A
+	ld A, [HL+]
+	ld C, A ; BC = next frame index
+	ld A, L
+	ld [FrameListAddr+1], A ; store lower part of updated HL
+	ld A, H
+	rla ; rotate top bit of H into carry, ie. set c if H = $80
+	jp nc, .no_frame_list_bank_change
+	ld A, $40
+	ld [FrameListAddr], A ; write new frame list addr value as $4000
+	ld A, E ; load bank from earlier
+	inc A
+	ld [FrameListBank], A
+.after_frame_list_bank_change
+	; anyway, now we have BC = frame index.
+	; we need to transform by taking bottom 3 bits * $800 as addr,
+	; and top 8 bits as bank.
+	; In particular, where input is 0000 0bbb bbbb baaa
+	; addr = 01aa a000 0000 0000 and bank = bbbb bbbb.
+	xor A
+	ld [CGBDMASourceLo], A
+	; shift BCA down 3 times
+	REPT 3
+	srl B
+	rr C
+	rra
+	ENDR
+	; now C = index, A = aaa0 0000
+	inc A ; A = aaa0 0001
+	rrca
+	rrca ; A = 01aa a000 = top half of addr
+	ld E, C
+	ld [CGBDMASourceHi], A
+ENDM
+
+_DetermineFrameExtra: MACRO
+.no_frame_list_bank_change
+	ld A, H
+	ld [FrameListAddr], A
+	Wait 1
+	jp .after_frame_list_bank_change
 ENDM
 
 ; Perform a DMA of \1 * 16 bytes from CGBDMASource to CGBDMADest
@@ -253,14 +306,26 @@ VBlank: MACRO
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144)
 	UpdateSample
 
-	; Load next frame addr - 16 into CGBDMASource, along with its bank into C.
-	; Clears ROM bank high bit.
-	; Sets HL up for bank loading.
+	; Load next frame addr into CGBDMASource, along with its bank into E.
+	; Clears ROM bank high bit and clobbers bank.
+	; Sets D up for bank loading.
 	DetermineFrame
 
-	; Set up destination addr, load correct banks
-	ld A, C
-	ld [HL], A ; load frame bank
+	; Register assignment for this loop
+	; B - next audio volume
+	; C - LOW(CGBDMAControl) = $55
+	; D - $20, so that [DE] writes ROM bank lower byte
+	; E - Frame bank
+	; HL - scratch, clobbered by PrepareVolumes.
+	;	L is always odd after PrepareVolumes, always even after UpdateSample
+	;	H is always in range $40-$7f after either
+	;	We set H=$30 between UpdateSample and PrepareVolumes so [HL] writes upper bit of ROM bank
+
+	; Set up initial values not already set by DetermineFrame
+	ld C, LOW(CGBDMAControl)
+	ld H, $30
+	ld A, E
+	ld [DE], A ; load frame bank
 	xor A
 	ld [CGBVRAMBank], A ; load vram bank 0
 	ld [CGBDMADestHi], A
@@ -268,9 +333,9 @@ VBlank: MACRO
 	; We need to do a total of 38 16-byte blocks of DMA for this first half.
 
 	; Pad to 4 cycles before audio switch
-	Wait ((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME_A
+	Wait (((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME) - 17
 
-	; Some calculations for this loop
+	; Some calculations for this loop TODO update
 	dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_SLOW + 5 + 3) ; 5 for setting high bit, 3 for volume update
 	dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE + 7) ; 7 for resetting rom bank
 
@@ -287,10 +352,7 @@ VBlank: MACRO
 	Wait dma_padding_before_sound
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
-	ld H, $30
-	ld [HL], E ; E's bottom bit is set, so this sets rom bank high bit
-	; TODO The above about E isn't true anymore
-	dec H ; this puts H into a good value for PrepareVolumesSlow
+	ld [HL], C ; C's bottom bit is set, so this sets rom bank high bit
 	PrepareVolumesSlow
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 145)
 	UpdateSample
@@ -298,8 +360,8 @@ VBlank: MACRO
 	; Now we set bank back
 	ld H, $30
 	ld [HL], A ; A will always be 0 here as its used to set new low value of AudioAddr, so reset rom bank high bit.
-	dec H ; H = $2f
-	ld [HL], C ; load frame bank
+	ld A, E
+	ld [DE], A ; load frame bank
 
 	DMA dma_blocks_between_sound
 	Wait dma_padding_between_sound
