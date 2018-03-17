@@ -336,6 +336,7 @@ ENDM
 ;	cycles until start of last hblank before vblank: 88 - padding
 ;	cycles until start of vblank proper: 190 - padding
 ;	D = $20-$2f
+;	ROM bank high bit set
 ; upon exit:
 ;	cycles until audio switchover: CYC_PREPARE_VOLUMES + 3
 ;	cycles until end of vblank: 105 + CYC_PREPARE_VOLUMES + CYC_UPDATE_SAMPLE + CYC_PREPARE_PALETTE_COPY
@@ -573,6 +574,16 @@ ENDM
 
 
 Play::
+	ld D, $30
+	ld A, 1
+	ld [DE], A ; set rom bank high bit
+	dec D ; D = $2f
+
+	; TODO init lcdcontrol
+	; TODO wait until first vblank about to start
+	; TODO begin sound playing
+	; TODO wait some more
+
 	jp .start
 .frame_loop
 	LineLoop

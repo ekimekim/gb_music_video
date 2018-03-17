@@ -4,7 +4,7 @@ include "debug.asm"
 
 SECTION "Stack", WRAM0
 
-	ds 128
+	ds 32
 Stack:
 
 
@@ -23,104 +23,11 @@ Start::
 
 	ld SP, Stack
 
+	call LoadTiles
 	call InitSound
+	call InitHRAM
 
-	; We need to load the next sample pair every 228 cycles and update volume every 114.
-	; We alternate "long" updates where we add a sample pair and "short" ones where we don't.
-
-	ld HL, $4000 ; addr within bank
-	ld B, 1 ; bank
-
-	; pre-load first pair of volumes
-	ld A, [HL]
-	and $f0
-	ld D, A
-	ld A, [HL+]
-	and $0f
-	ld E, A
-	swap A
-	or E
-	ld E, A
-	ld A, D
-	swap A
-	or D
-	ld D, A
-
-	ld [SoundVolume], A
-
-	; Time starts when we write to control register.
-	ld A, [SoundCh3Control]
-	set 7, A
-	ld [SoundCh3Control], A
-
-Wait: MACRO
-	REPT \1
-	nop
-	ENDR
-ENDM
-
-	Wait 4 ; simulate the jump back to top of loop
-
-.loop
-
-	Wait 114 - 4 - 4 ; wait until 4 cycles before second sample starts
-
-	; write volume for second sample
-	ld A, E
-	ld [SoundVolume], A ; second sample starts on the cycle this instruction finishes
-
-	; prepare next two volumes, write the first,
-	; and write next round's sample.
-	; total time: 44 cycles
-
-	ld A, [HL+] ; next pair of samples
-	ld [SoundCh3Data], A ; write samples
-
-	; check bounds on HL and inc bank
-	ld A, H
-	; check if top bit is set (ie. HL >= 8000)
-	rla ; puts top bit into c
-	jr nc, .no_newbank
-	ld HL, $4000
-	ld A, B
-	inc A
-
-	cp 198 ; final bank is 197
-	jr z, .end_audio
-
-	ld B, A
-	ld [$2000], A ; switch bank
-	jr .newbank_end
-.no_newbank
-	Wait 16
-.newbank_end
-
-	; Load new volume pair
-	ld A, [HL] ; A = 0xxx0yyy where x is first entry
-	and $f0
-	ld D, A ; D = first entry, unprocessed
-	ld A, [HL+] ; load a fresh copy
-	and $0f
-	ld E, A ; E = 00000yyy
-	swap A
-	or E
-	ld E, A ; E = 0yyy0yyy
-	ld A, D
-	swap A
-	or D ; A = 0xxx0xxx
-
-	; wait until 3 cycles before next sample starts
-
-	Wait 114 - 44 - 3
-
-	ld [SoundVolume], A ; next sample starts on the cycle this instruction finishes
-
-	jp .loop
-
-.end_audio
-	xor A
-	ld [SoundControl], A ; turn off sound
-	jp HaltForever
+	jp Play ; does not return
 
 
 InitSound::
@@ -146,4 +53,50 @@ InitSound::
 	ld A, HIGH(1934)
 	ld [SoundCh3Control], A ; note we aren't actually beginning playback yet - do that later by setting bit 7
 
+	ret
+
+
+LoadTiles:
+	xor A
+	ld [CGBVRAMBank], A ; vram bank 0
+
+	ld A, BANK_TILE_DATA
+	ld [$2000], A ; load tile data bank
+
+	xor A
+	ld [CGBDMASourceLo], A
+	ld [CGBDMADestLo], A
+	ld A, $40
+	ld [CGBDMASourceHi], A ; source = $4000
+	ld A, $80
+	ld [CGBDMADestHi], A ; dest = $8000
+	ld A, 127
+	ld [CGBDMAControl], A
+	ld [CGBDMAControl], A ; general DMA for 256 blocks = entire tile data section
+
+	ld A, 1
+	ld [CGBVRAMBank], A ; vram bank 1
+	xor A
+	ld [CGBDMADestLo], A
+	ld A, $80
+	ld [CGBDMADestHi], A ; dest = $8000
+	; note source is unchanged, we keep going from where we left off
+	ld A, 127
+	ld [CGBDMAControl], A
+	ld [CGBDMAControl], A ; general DMA for 256 blocks = entire tile data section
+
+	ret
+
+
+InitHRAM:
+	ld A, BANK_AUDIO_DATA
+	ld [AudioBank], A
+	ld A, BANK_FRAME_LIST
+	ld [FrameListBank], A
+	ld A, $40
+	ld [AudioAddr], A
+	ld [FrameListAddr], A
+	xor A
+	ld [AudioAddr+1], A ; Addr = $4000
+	ld [FrameListAddr+1], A ; Addr = $4000
 	ret
