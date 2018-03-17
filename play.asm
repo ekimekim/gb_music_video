@@ -62,7 +62,28 @@ PrepareVolumes: MACRO
 	xor E ; A = (0^1st, 1st^2nd^2nd) = (1st, 1st)
 ENDM
 
-; As PrepareVolumes but clobbers D instead. Longer. Uses SP,
+; As PrepareVolumes but expects SP = AudioAddr and returns SP = AudioAddr+2. 
+CYC_PREPARE_VOLUMES_TRANSITION EQU 22
+PrepareVolumesTransition: MACRO
+	; load bank
+	ld A, [AudioBank]
+	ld [DE], A ; note D is $20 so DE is $2000-$20ff
+	; HL = addr
+	pop HL
+	; load second volume first
+	ld A, [HL+]
+	ld E, A
+	and $0f ; select second volume
+	ld B, A
+	swap A
+	or B
+	ld B, A ; A = B = second volume, copied to both nibbles
+	xor E ; A = (2nd^1st, 2nd^2nd) = (1st^2nd, 0)
+	swap A ; A = (0, 1st^2nd)
+	xor E ; A = (0^1st, 1st^2nd^2nd) = (1st, 1st)
+ENDM
+
+; As PrepareVolumes but clobbers D instead. Uses SP,
 ; and expects SP = AudioAddr. Expects H = $2f. Expects C odd.
 CYC_PREPARE_VOLUMES_VBLANK EQU 25
 PrepareVolumesVBlank: MACRO
@@ -116,7 +137,6 @@ _UpdateSampleExtra: MACRO
 	Wait 18 - 8 - 8 ; jumps = 8, instructions = 8
 	jp .after_audio_bank_change_\1
 ENDM
-
 
 ; Variant of UpdateSample that expects SP = AudioAddr+2 and resets to to AudioAddr.
 CYC_UPDATE_SAMPLE_VBLANK EQU 22
@@ -247,6 +267,7 @@ ENDM
 ; Load next frame addr into CGBDMASource, along with its bank into E.
 ; Clears ROM bank high bit and clobbers bank.
 ; Sets D up for bank loading.
+; Can't clobber B.
 CYC_DETERMINE_FRAME EQU 50
 DetermineFrame: MACRO
 	ld D, $30
@@ -304,17 +325,20 @@ ENDM
 ;	cycles until end of vblank: 105 + CYC_PREPARE_VOLUMES + CYC_UPDATE_SAMPLE + CYC_PREPARE_PALETTE_COPY
 VBlank: MACRO
 
-	; Hard to do anything useful in this little time
-	Wait line_spare + 3
+	ld SP, AudioAddr
+	; 3 for audio switch. 3 for ld SP above.
+vblank_start_padding = CYC_PREPARE_VOLUMES + line_spare + 6 - (CYC_PREPARE_VOLUMES_TRANSITION + 3 + 3)
+	Wait vblank_start_padding
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, E and rom bank
-	PrepareVolumes
+	PrepareVolumesTransition
 	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144)
-	UpdateSample 1
+	UpdateSampleVBlank 1
 
 	; Load next frame addr into CGBDMASource, along with its bank into E.
 	; Clears ROM bank high bit and clobbers bank.
 	; Sets D up for bank loading.
+	; Can't clobber B.
 	DetermineFrame
 
 	; Register assignment for this loop
@@ -328,7 +352,6 @@ VBlank: MACRO
 	;	We set H=$30/$2f between UpdateSample and PrepareVolumes so [HL] writes upper bit / lower byte of rom bank
 
 	; Set up initial values not already set by DetermineFrame
-	ld SP, AudioAddr
 	ld C, LOW(CGBDMAControl)
 	ld H, $2f
 	ld A, E
@@ -343,7 +366,9 @@ VBlank: MACRO
 	; Pad to 4 cycles before audio switch
 	; NOTE: if in final version we can drop above costs so this wait is 18c, then rearrange above
 	; so A = 0 as final value, then we can DMA 1 here.
-	Wait (((114 - CYC_UPDATE_SAMPLE) - 4) - CYC_DETERMINE_FRAME) - 21 ; 21 is for initial values setup
+vblank_into_loop_padding = (((114 - CYC_UPDATE_SAMPLE_VBLANK) - 4) - CYC_DETERMINE_FRAME) - 21 ; 21 is for initial values setup
+	Wait vblank_into_loop_padding
+	PRINTT "Padding for {vblank_into_loop_padding} before loop. If this is >=$12, we can fit a DMA here.\n"
 
 	; Some calculations for this loop
 dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_VBLANK + 3) ; 3 for volume update
