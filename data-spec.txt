@@ -88,7 +88,8 @@ frame data:
 		1 palette change, for the whole frame:
 			This sets the value of palettes 4-7 for the frame.
 			It refers to the 4 new palette values to write by specifying:
-				
+				The palette group address, little-endian
+				The palette group bank
 		The remaining bytes up to 2048 are unused padding
 
 frame order list:

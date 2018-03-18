@@ -322,12 +322,35 @@ DMA: MACRO
 ENDM
 
 
-; Set scroll values for frame, loads palette group bank into PaletteChangeBank (and loads it),
+; Set scroll values for frame, loads palette group bank into PaletteGroupBank (and loads it),
 ; sets top bit of rom bank, sets HL to address of first palette,
 ; sets up palette data to write palettes 4-7, sets D to 20-2f so DE writes rom bank.
-CYC_LOAD_FRAME_MISC EQU 0 ; TODO
+CYC_LOAD_FRAME_MISC EQU 46
 LoadFrameMisc: MACRO
-	; TODO
+	ld A, [CGBDMASourceHi]
+	ld H, A
+	ld A, [CGBDMASourceLo]
+	ld L, A ; HL = final CGBDMASource = points at X scroll value of frame
+	ld A, [HL+] ; A = X scroll value, HL points at Y scroll value
+	ld [ScrollX], A
+	ld A, [HL+] ; A = Y scroll value, HL points at palette group addr
+	ld [ScrollY], A
+	ld A, [HL+] ; bottom byte of palette group addr
+	ld E, A
+	ld A, [HL+] ; top byte of palette group addr
+	ld C, A
+	ld A, [HL] ; bank of palette group
+	ld H, D
+	ld L, E ; HL = CE
+	ld D, $2f
+	ld [DE], A ; set palette group bank
+	ld [PaletteGroupBank], A
+	inc D
+	ld A, 1
+	ld [DE], A ; set rom bank high bit
+	dec D ; D = $2f again
+	ld A, $80 | 4 * 8 ; start at palette 4, auto-increment
+	ld [TileGridPaletteIndex], A
 ENDM
 
 

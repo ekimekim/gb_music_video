@@ -1,4 +1,5 @@
 include "ioregs.asm"
+include "hram.asm"
 include "debug.asm"
 
 
