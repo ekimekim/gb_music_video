@@ -206,7 +206,7 @@ LineLoop: MACRO
 	PrepareVolumes
 
 	; Syncronised to audio sample switch, write first volume.
-	ld [SoundCh3Volume], A
+	ld [SoundVolume], A
 	; AUDIO SAMPLE SWITCH
 
 	; Writes next audio sample and advances audio data offset, updates bank if needed.
@@ -232,7 +232,7 @@ PRINTT "cycles: {cycles}, loops: {palette_loops}, padding: {padding}\n"
 
 	; Syncronised to audio sample switch, write second volume.
 	ld A, B
-	ld [SoundCh3Volume], A
+	ld [SoundVolume], A
 	; AUDIO SAMPLE SWITCH
 
 	; Do the other half of the palette bytes copy
@@ -375,7 +375,7 @@ vblank_start_padding = CYC_PREPARE_VOLUMES + line_spare + 6 - (CYC_PREPARE_VOLUM
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, E and rom bank
 	PrepareVolumesTransition
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144)
+	ld [SoundVolume], A ; Finishes at the same time as audio switch (line 144)
 	UpdateSampleVBlank $2
 
 	; Load next frame addr into CGBDMASource, along with its bank into E.
@@ -439,14 +439,14 @@ n = 2
 n = n + 1
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 144 + loop+.5)
+	ld [SoundVolume], A ; Finishes at same time as audio switch (line 144 + loop+.5)
 
 	DMA 5
 	Wait dma_padding_before_sound
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 144 + loop+1)
+	ld [SoundVolume], A ; Finishes at the same time as audio switch (line 144 + loop+1)
 	UpdateSampleVBlank {n}
 
 	; Now we set bank back
@@ -462,7 +462,7 @@ n = n + 1
 	; Now 36 blocks copied
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 148.5)
+	ld [SoundVolume], A ; Finishes at same time as audio switch (line 148.5)
 
 	DMA 2 ; 38 blocks copied. Now we need to switch to other VRAM bank, reset dest and copy next 38.
 	ld A, $98
@@ -480,7 +480,7 @@ n = n + 1
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 149)
+	ld [SoundVolume], A ; Finishes at the same time as audio switch (line 149)
 	UpdateSampleVBlank $7
 
 	; Now we set bank back
@@ -499,14 +499,14 @@ n = 7
 n = n + 1
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 148 + loop+.5)
+	ld [SoundVolume], A ; Finishes at same time as audio switch (line 148 + loop+.5)
 
 	DMA 5
 	Wait dma_padding_before_sound
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 148 + loop+1)
+	ld [SoundVolume], A ; Finishes at the same time as audio switch (line 148 + loop+1)
 	UpdateSampleVBlank {n}
 
 	; Now we set bank back
@@ -522,14 +522,14 @@ n = n + 1
 	; Now 33 blocks copied.
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 152.5)
+	ld [SoundVolume], A ; Finishes at same time as audio switch (line 152.5)
 
 	DMA 5 ; 38 blocks copied
 	Wait dma_padding_before_sound
 
 	; Do audio update and populate B with next volume. Clobbers A, HL, rom bank and rom bank high bit
 	PrepareVolumesVBlank
-	ld [SoundCh3Volume], A ; Finishes at the same time as audio switch (line 153)
+	ld [SoundVolume], A ; Finishes at the same time as audio switch (line 153)
 	UpdateSampleVBlank $B
 
 	; Now we set bank back
@@ -560,7 +560,7 @@ vblank_palette_padding = vblank_palette_copy_cycles % 4
 	Wait vblank_palette_padding
 
 	ld A, B
-	ld [SoundCh3Volume], A ; Finishes at same time as audio switch (line 153.5)
+	ld [SoundVolume], A ; Finishes at same time as audio switch (line 153.5)
 
 	REPT 24 - vblank_palette_loops
 	ld A, [HL+] ; load next byte of palette data and increment
