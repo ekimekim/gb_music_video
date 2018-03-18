@@ -597,22 +597,42 @@ ENDM
 
 
 Play::
-	ld D, $30
-	ld A, 1
-	ld [DE], A ; set rom bank high bit
-	dec D ; D = $2f
+	; Awkward order is so we can use calculations from later loops in earlier waits
+	jp .skip
 
-	; TODO init lcdcontrol
-	; TODO wait until first vblank about to start
-	; TODO begin sound playing
-	; TODO wait some more
-
-	jp .start
 .frame_loop
 	LineLoop
 .start
 	VBlank
 	jp .frame_loop
+
+.skip
+	ld D, $30
+	ld A, 1
+	ld [DE], A ; set rom bank high bit
+	dec D ; D = $2f
+
+	; init lcdcontrol
+	ld A, %10010000 ; screen on, use unsigned tile indexes, no window or sprites
+	; note: as of the moment this instruction ends, we're at LY=0 and start of OAM search.
+
+	; calculate total time until we should enter vblank
+ppu_to_vblank = 228 * 144
+entry_time_before_vblank = 190 - padding
+ppu_to_vblank_entry = ppu_to_vblank - entry_time_before_vblank
+audio_to_vblank_entry = 144 - (CYC_PREPARE_VOLUMES + line_spare + 6 + 4) ; extra 4 from the jump
+
+	; we want to begin audio playback 144 cycles before vblank expects first audio switch
+	WaitLong ppu_to_vblank_entry + (-(audio_to_vblank_entry + 8)) ; 8 from setting sound playing 
+
+	; begin sound playing
+	ld A, [SoundCh3Control]
+	or $80
+	ld [SoundCh3Control], A
+
+	Wait audio_to_vblank_entry
+
+	jp .start
 
 	_UpdateSampleExtra $1
 n = 1
