@@ -61,14 +61,21 @@ namespace animparse.Frames
                 textures[vec.y, vec.x] = GetTexture(bitmapFrame[vec.y, vec.x], palettes[vec.y, vec.x]);
 
                 // Add Palette / Texture to rom
-                romData.UpsertPalette(palette, pushedPalettes);
-                romData.UpsertTexture(texture, pushedTextures);
+                var paletteIndex = romData.UpsertPalette(palette, pushedPalettes);
+                var textureIndex = romData.UpsertTexture(texture, pushedTextures);
 
                 // Add tile to frame
                 var tile = new GBTile();
-                tile.Palette = palette;
-                tile.Texture = texture;
+                tile.Palette = romData.PaletteData[paletteIndex];
+                tile.Texture = romData.TextureData[textureIndex];
                 frame.TileUpdates[vec.y, vec.x] = tile;
+            }
+
+            foreach (var vec in ArrayUtility.ForEach(Frame.Height, Frame.Width))
+            {
+                var index = romData.TextureData.IndexOf(frame.TileUpdates[vec.y, vec.x].Texture);
+                if (index == -1)
+                    throw new Exception("Texture missing at " + vec.x + ", " + vec.y);
             }
 
             pushedPalettes.Sort();

@@ -1,0 +1,70 @@
+﻿// intro	
+0	trumpet_left
+2.25	drum
+2.8	trumpet_left
+4.7	drum
+5	drum
+5.25	trumpet_left
+	
+// chorus	
+6.8	trumpet_left
+7.8	trumpet_right
+8.8	trumpet_left
+9.7	trumpet_right
+10.5	trumpet_left
+11.5	trumpet_right
+12.25	trumpet_left
+	
+// picollo solo	
+14.75	picollo
+	
+// chorus 2	
+17.75	trumpet_left
+18.75	trumpet_right
+19.75	trumpet_left
+20.65	trumpet_right
+21.45	trumpet_left
+22.45	trumpet_right
+23.2	trumpet_left
+	
+// trumpet solo	
+25.75	trumpet_right
+	
+// chorus 3	
+28.75	trumpet_left
+29.75	trumpet_right
+30.75	trumpet_left
+31.65	trumpet_right
+32.45	trumpet_left
+33.45	trumpet_right
+34.2	trumpet_left
+	
+// drum solo	
+36.5	drum
+	
+// chorus 4	
+39.5	trumpet_left
+40.5	trumpet_right
+41.5	trumpet_left
+42.4	trumpet_right
+43.2	trumpet_left
+44.2	trumpet_right
+44.95	trumpet_left
+	
+// random shit	
+47	mixed
+	
+// left solo	
+1:15.5	trumpet_left
+	
+// pause	
+1:38.5	
+	
+// left solo	
+1:39.5	trumpet_left
+	
+// piccolo solo	
+1:46.5	picollo
+	
+// piccolo solo (louder)	
+1:59.0	picollo

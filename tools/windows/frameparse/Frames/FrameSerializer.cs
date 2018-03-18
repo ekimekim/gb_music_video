@@ -46,17 +46,17 @@ namespace animparse.Frames
 
         static void WriteFrames(this StreamWriter writer, RomData romData)
         {
-            writer.WriteComment(string.Format("Frames {0}", romData.Frames.Count));
+            writer.WriteComment(string.Format("Frames ({0} total)", romData.Frames.Count));
             writer.WriteLine();
 
             var index = 0;
             foreach (var frame in romData.Frames)
             {
-                writer.WriteComment(string.Format("Frames [{0}]", ++index));
+                writer.WriteComment(string.Format("Frames [{0}]", index++));
 
                 const int TileRowBytes = 32;
 
-                writer.WriteComment(string.Format("Frames [{0}].Tiles - vram indexes", index));
+                writer.WriteComment(string.Format("Frames [{0}] Tiles - vram indexes", index));
                 var defaultTile = frame.TileUpdates[0, 0];
                 for (int row = 0; row < Frame.Height; row++)
                 {
@@ -71,12 +71,12 @@ namespace animparse.Frames
                         writer.Write(textureIndex.ToString());
                     }
 
-                    writer.Write(" ");
-                    writer.WritePadding(TileRowBytes - Frame.Width);
+                    writer.WriteLine();
+                    writer.WritePadding(TileRowBytes - Frame.Width, false);
                 }
                 writer.WriteLine();
 
-                writer.WriteComment(string.Format("Frames [{0}].Tiles - flags", index));
+                writer.WriteComment(string.Format("Frames [{0}] Tiles - flags", index));
                 for (int row = 0; row < Frame.Height; row++)
                 {
                     writer.Write("db "); // declare byte
@@ -98,16 +98,43 @@ namespace animparse.Frames
                             writer.Write(", ");
                         writer.Write(flags.ToString());
                     }
-                    writer.WriteLine();
-                    writer.WritePadding(TileRowBytes - Frame.Width);
-                }
-            }
 
+                    writer.WriteLine();
+                    writer.WritePadding(TileRowBytes - Frame.Width, true);
+                }
+                writer.WriteLine();
+
+                writer.WriteComment(string.Format("Frames [{0}] palette per changes", index));
+                writer.WriteComment("use index 0 (144*2)");
+                writer.WriteLine("ds " + (144 * 2));
+                writer.WriteLine();
+
+                writer.WriteComment(string.Format("Frames [{0}] palette (end) changes", index));
+                writer.WriteComment("use index 0");
+                writer.WriteLine("ds " + 2);
+                writer.WriteLine();
+
+                writer.WriteComment(string.Format("Frames [{0}] scroll", index));
+                writer.WriteLine("db " + 0);
+                writer.WriteLine();
+            }
         }
 
-        static void WritePadding(this StreamWriter writer, int bytes)
+        static void WritePadding(this StreamWriter writer, int bytes, bool zeros)
         {
-            writer.WriteLine("ds " + bytes); // declare byte
+            writer.WriteComment(string.Format("Padding {0} bytes", bytes));
+
+            if (zeros)
+            {
+                for (int i = 0; i < bytes; i++)
+                {
+                    writer.WriteLine("db 0");
+                }
+            }
+            else
+            {
+                writer.WriteLine("ds " + bytes); // declare byte
+            }
         }
 
         static void WriteTextures(this StreamWriter writer, RomData romData)
@@ -118,7 +145,7 @@ namespace animparse.Frames
             var index = 0;
             foreach(var texture in romData.TextureData)
             {
-                writer.WriteComment(string.Format("Rom Textures [{0}]", ++index));
+                writer.WriteComment(string.Format("Rom Textures [{0}]", index++));
 
                 for (int rowIndex = 0; rowIndex < GBTexture.WidthPx; rowIndex++)
                 {
@@ -135,13 +162,23 @@ namespace animparse.Frames
 
         static void WritePaletteGroups(this StreamWriter writer, RomData romData)
         {
-            var paletteGroups = romData.PaletteData.Take(4).ToArray();
-            writer.WriteComment("Palatte Groups 1 total");
+            var paletteGroups = new GBPalette[][]
+            {
+                romData.PaletteData.Take(4).ToArray(),
+                romData.PaletteData.Skip(4).Take(4).ToArray(),
+            };
+
+            writer.WriteComment("Palatte Groups 2 total");
             writer.WriteLine();
 
+            var index = 0;
+            foreach (var paletteGroup in paletteGroups)
             {
-                writer.WriteComment("Palatte Groups [0]");
-                writer.WritePalette(paletteGroups.First());
+                writer.WriteComment(string.Format("Palatte Groups [{0}]", index++));
+                foreach (var palette in paletteGroup)
+                {
+                    writer.WritePalette(palette);
+                }
                 writer.WriteLine();
             }
         }
