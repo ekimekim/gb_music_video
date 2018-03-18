@@ -136,12 +136,12 @@ def get_video_data():
 	"""Returns palette_groups, textures, palette_changes, frames, frame_order"""
 	# test data
 	return (
-		# palette groups 0-2
-		[[[(c * 8, p * 8, x * 8) for c in range(4)] for p in range(4)] for x in range(3)],
+		# palette groups 0-31
+		[[[(x, 0, 0) for c in range(4)] for p in range(4)] for x in range(32)],
 		# textures 0-2
 		[[[(c+r+t) % 4 for c in range(8)] for r in range(8)] for t in range(3)],
 		# palette changes for frames 0-2
-		[[(l+f) % 3 for l in range(144)] for f in range(3)],
+		[[l % 32 for l in range(144)] for f in range(3)],
 		# frames 0-2
 		[{
 			'tiles': [[((r+c+f) % 3, r % 2, c % 2, (r+c+f) % 8) for c in range(21)] for r in range(19)],
