@@ -10,7 +10,7 @@ DEBUGOBJS := $(addprefix build/debug/,$(OBJS))
 RELEASEOBJS := $(addprefix build/release/,$(OBJS))
 INCLUDES := $(wildcard include/*.asm) include/banks.asm
 TESTS := $(wildcard tests/*.py)
-AUDIO := music.mp3
+AUDIO := music.opus
 
 FIXARGS := -v -C -m 0x19 
 
