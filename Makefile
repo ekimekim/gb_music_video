@@ -12,7 +12,7 @@ INCLUDES := $(wildcard include/*.asm) include/banks.asm
 TESTS := $(wildcard tests/*.py)
 AUDIO := music.mp3
 
-FIXARGS := -v -C -m 0x1a 
+FIXARGS := -v -C -m 0x19 
 
 all: build/release/rom.gb tests/.uptodate
 
