@@ -139,7 +139,7 @@ _UpdateSampleExtra: MACRO
 ENDM
 
 ; Variant of UpdateSample that expects SP = AudioAddr+2 and resets to to AudioAddr.
-CYC_UPDATE_SAMPLE_VBLANK EQU 22
+CYC_UPDATE_SAMPLE_VBLANK EQU 21
 UpdateSampleVBlank: MACRO
 	ld A, [HL+] ; A = next sample
 	ld [SoundCh3Data], A ; write next sample
@@ -284,7 +284,7 @@ DetermineFrame: MACRO
 	ld A, [FrameListAddr + 1]
 	ld L, A ; HL = frame list addr
 	ld A, [HL+] ; load frame bank
-	xor A ; set z if bank is 0, as this indicates end of the program
+	and A ; set z if bank is 0, as this indicates end of the program
 	jp z, .end
 	ld E, A ; first byte is bank
 	ld A, [HL+]
@@ -413,7 +413,7 @@ vblank_into_loop_padding = (((114 - CYC_UPDATE_SAMPLE_VBLANK) - 4) - CYC_DETERMI
 
 	; Some calculations for this loop
 dma_cycles_before_sound = 114 - (CYC_PREPARE_VOLUMES_VBLANK + 3) ; 3 for volume update
-dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE_VBLANK + 7) ; 7 for resetting rom bank
+dma_cycles_between_sound = 114 - (CYC_UPDATE_SAMPLE_VBLANK + 7 + 4) ; 7 for resetting rom bank, 4 forvolume update
 
 dma_blocks_before_sound = (dma_cycles_before_sound - CYC_DMA) / 16
 dma_blocks_between_sound = (dma_cycles_between_sound - CYC_DMA) / 16
@@ -616,11 +616,12 @@ Play::
 
 	; init lcdcontrol
 	ld A, %10010000 ; screen on, use unsigned tile indexes, no window or sprites
+	ld [LCDControl], A
 	; note: as of the moment this instruction ends, we're at LY=0 and start of OAM search.
 
 	; calculate total time until we should enter vblank
 ppu_to_vblank = 228 * 144
-entry_time_before_vblank = 190 - padding
+entry_time_before_vblank = (190 - padding) + 4 ; extra 4 from jump
 ppu_to_vblank_entry = ppu_to_vblank - entry_time_before_vblank
 audio_to_vblank_entry = 144 - (CYC_PREPARE_VOLUMES + line_spare + 6 + 4) ; extra 4 from the jump
 
