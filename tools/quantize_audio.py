@@ -31,9 +31,9 @@ def main(asm_path):
 		xs.append(x)
 		ys.append(y)
 
-	# ys is delayed by 32 so we pad xs with 32 zeroes at start and y with 32 7s at end
-	xs = [0] * 32 + xs
-	ys = ys + [7] * 32
+	# ys is delayed by 31 so we pad xs with 31 zeroes at start and y with 32 7s at end
+	xs = [0] * 31 + xs
+	ys = ys + [7] * 31
 
 	with open(asm_path, 'w') as f:
 		f.write('include "banks.asm"\n')
