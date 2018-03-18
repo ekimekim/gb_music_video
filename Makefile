@@ -3,12 +3,12 @@
 .SUFFIXES: .asm .o .gb
 .PHONY: bgb clean tests testroms debug
 
-GENERATED_ASM := $(wildcard data/*.asm)
+GENERATED_ASM := $(wildcard data/*.asm) data/audio.asm
 ASMS := $(wildcard *.asm) $(GENERATED_ASM)
 OBJS := $(ASMS:.asm=.o)
 DEBUGOBJS := $(addprefix build/debug/,$(OBJS))
 RELEASEOBJS := $(addprefix build/release/,$(OBJS))
-INCLUDES := $(wildcard include/*.asm)
+INCLUDES := $(wildcard include/*.asm) include/banks.asm
 TESTS := $(wildcard tests/*.py)
 AUDIO := music.mp3
 

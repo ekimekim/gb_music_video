@@ -5,7 +5,7 @@ ROOT="$SCRIPT_DIR/.."
 
 INPUT=${1?need input}
 NAME=$(basename "$INPUT")
-ASM="$ROOT/audio_data.asm"
+ASM="$ROOT/data/audio.asm"
 FLAC="$ROOT/${NAME%.*}.quantized.flac"
 
 shift 1

@@ -85,7 +85,7 @@ REPT (\1) / 1024
 	xor A
 .loop\@
 	dec A
-	jr z, .loop\@
+	jr nz, .loop\@
 ENDR
 ; a partial loop is 4*n+2-1 cycles, min 5
 _remainder = (\1) % 1024
@@ -93,7 +93,7 @@ IF _remainder >= 5
 	ld A, (_remainder - 1) / 4
 .r_loop\@
 	dec A
-	jr z, .r_loop\@
+	jr nz, .r_loop\@
 	Wait (_remainder + (-1)) % 4
 ELSE
 	Wait _remainder
