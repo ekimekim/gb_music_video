@@ -609,7 +609,7 @@ Play::
 ppu_to_vblank = 228 * 144
 entry_time_before_vblank = (190 - padding) + 4 ; extra 4 from jump
 ppu_to_vblank_entry = ppu_to_vblank - entry_time_before_vblank
-audio_to_vblank_entry = 114 - (CYC_PREPARE_VOLUMES + line_spare + 6 + 4 + 1) ; extra 4 from the jump, 1 from magic
+audio_to_vblank_entry = 114 - (CYC_PREPARE_VOLUMES + line_spare + 6 + 4 - 3) ; extra 4 from the jump, -3 from magic
 
 	; we want to begin audio playback 144 cycles before vblank expects first audio switch
 	WaitLong ppu_to_vblank_entry + (-(audio_to_vblank_entry + 8)) ; 8 from setting sound playing 
