@@ -8,7 +8,7 @@ ceil = lambda x: int(math.ceil(x))
 def values_to_asm(section, first_bank, values):
 	lines = []
 	for i, v in enumerate(values):
-		if i % 2**14 == 0:
+		if section and i % 2**14 == 0:
 			bank = i / 2**14
 			lines.append('SECTION "{} {}", ROMX, BANK[{}]'.format(section, bank, first_bank + bank))
 		lines.append("\tdb {}".format(v))
@@ -36,7 +36,7 @@ def pad(items, size):
 
 
 def main():
-	palette_groups, textures, palette_changes, frames, frame_order = get_video_data()
+	palette_groups, textures, palette_changes, frames, frame_order, static_palette = get_video_data()
 
 	# determine banks
 	pg_banks = ceil(len(palette_groups) / 512.)
@@ -58,6 +58,14 @@ def main():
 	write_asm('palette_changes', palette_changes, pc_bank, encode_palette_change, pg_bank)
 	write_asm('frames', frames, frame_bank, encode_frame, pg_bank)
 	write_asm('frame_order', frame_order, frame_order_bank, encode_frame_order_item, frame_bank, pc_bank, terminator=[0])
+
+	static_palette = encode_static_palette(static_palette)
+	with open('data/static_palette.asm', 'w') as f:
+		f.write(
+			'SECTION "static palette", ROM0\n'
+			'StaticPalette::\n'
+			+ values_to_asm(None, None, static_palette)
+		)
 
 	with open('include/banks.asm', 'w') as f:
 		banks = [
@@ -132,8 +140,17 @@ def encode_frame_order_item(index, frame_bank, pc_bank):
 	return [frame_bank, frame_addr / 256, pc_bank % 256, pc_addr / 256]
 
 
+def encode_static_palette(palette):
+	# the static palette is a single 4-list of colors (r,g,b)
+	result = []
+	for r,g,b in palette:
+		value = r + (g << 5) + (b << 10)
+		result += [value % 256, value / 256]
+	return result
+
+
 def get_video_data():
-	"""Returns palette_groups, textures, palette_changes, frames, frame_order"""
+	"""Returns palette_groups, textures, palette_changes, frames, frame_order, static_palette"""
 	# test data
 	return (
 		# palette groups 0-31
@@ -150,6 +167,8 @@ def get_video_data():
 		} for f, s in enumerate([(0, 0), (4, 0), (0, 4)])],
 		# frame list: loop between 0, 1 and 2, then stay 1sec on each, then repeat 10 times.
 		([0, 1, 2] + [0] * 60 + [1] * 60 + [2] * 60) * 10,
+		# static palette: red green blue black
+		[(31, 0, 0), (0, 31, 0), (0, 0, 31), (31, 31, 31)],
 	)
 
 

@@ -28,6 +28,7 @@ Start::
 	call LoadTiles
 	call InitSound
 	call InitHRAM
+	call InitPalette
 
 	jp Play ; does not return
 
@@ -101,4 +102,16 @@ InitHRAM:
 	xor A
 	ld [AudioAddr], A ; Addr = $4000
 	ld [FrameListAddr+1], A ; Addr = $4000
+	ret
+
+
+InitPalette:
+	ld A, $80 | 7 * 8 ; palette slot 7, and auto-increment
+	ld [TileGridPaletteIndex], A
+	ld HL, StaticPalette
+	ld C, LOW(TileGridPaletteData)
+	REPT 8
+	ld A, [HL+]
+	ld [C], A
+	ENDR
 	ret
