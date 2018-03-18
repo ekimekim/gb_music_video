@@ -45,9 +45,9 @@ PrepareVolumes: MACRO
 	ld A, [AudioBank]
 	ld [DE], A ; note D is $20 so DE is $2000-$20ff
 	; HL = addr
-	ld A, [AudioAddr]
-	ld H, A
 	ld A, [AudioAddr+1]
+	ld H, A
+	ld A, [AudioAddr]
 	ld L, A
 	; load second volume first
 	ld A, [HL+]
@@ -122,18 +122,18 @@ UpdateSample: MACRO
 	ld HL, AudioBank
 	inc [HL]
 	ld A, $40
-	ld [AudioAddr], A
+	ld [AudioAddr + 1], A
 	xor A
-	ld [AudioAddr+1], A
+	ld [AudioAddr], A
 .after_audio_bank_change_\1
 ENDM
 ; other branch of UpdateSample. Must take 18 cycles including the jumps here and back.
 _UpdateSampleExtra: MACRO
 .no_audio_bank_change_\1
 	ld A, H
-	ld [AudioAddr], A
-	ld A, L
 	ld [AudioAddr+1], A
+	ld A, L
+	ld [AudioAddr], A
 	Wait 18 - 8 - 8 ; jumps = 8, instructions = 8
 	jp .after_audio_bank_change_\1
 ENDM
@@ -175,8 +175,8 @@ PreparePaletteCopy: MACRO
 	ld A, [PaletteChangeBank]
 	ld [DE], A ; load palette change bank
 	pop HL ; load palette group addr into HL, point SP to (bank, half of next addr)
-	pop AF ; load palette group bank into A, point SP to 1 past next addr
-	add SP, -1 ; point SP to next addr
+	add SP, -1 ; point SP to (half of this addr, bank)
+	pop AF ; load palette group bank into A, point SP to next addr
 	ld [DE], A ; load palette group bank
 ENDM
 
@@ -269,7 +269,7 @@ ENDM
 ; Sets D up for bank loading.
 ; Sets PaletteChangeBank and PaletteChangeAddr.
 ; Can't clobber B. Clobbers C.
-CYC_DETERMINE_FRAME EQU 64
+CYC_DETERMINE_FRAME EQU 69
 DetermineFrame: MACRO
 	ld D, $30
 	xor A
@@ -289,6 +289,8 @@ DetermineFrame: MACRO
 	ld E, A ; first byte is bank
 	ld A, [HL+]
 	ld [CGBDMASourceHi], A ; second byte is address upper byte
+	add 4 ; scroll values are $4c0 offset from start
+	ld [FrameScrollAddrHigh], A
 	ld A, [HL+]
 	ld [PaletteChangeBank], A ; third byte is palette change list bank
 	ld A, [HL+]
@@ -327,12 +329,11 @@ ENDM
 ; Set scroll values for frame, loads palette group bank into PaletteGroupBank (and loads it),
 ; sets top bit of rom bank, sets HL to address of first palette,
 ; sets up palette data to write palettes 4-7, sets D to 20-2f so DE writes rom bank.
-CYC_LOAD_FRAME_MISC EQU 46
+CYC_LOAD_FRAME_MISC EQU 44
 LoadFrameMisc: MACRO
-	ld A, [CGBDMASourceHi]
+	ld A, [FrameScrollAddrHigh]
 	ld H, A
-	ld A, [CGBDMASourceLo]
-	ld L, A ; HL = final CGBDMASource = points at X scroll value of frame
+	ld L, $c0 ; HL = points at X scroll value of frame
 	ld A, [HL+] ; A = X scroll value, HL points at Y scroll value
 	ld [ScrollX], A
 	ld A, [HL+] ; A = Y scroll value, HL points at palette group addr
@@ -342,7 +343,7 @@ LoadFrameMisc: MACRO
 	ld A, [HL+] ; top byte of palette group addr
 	ld C, A
 	ld A, [HL] ; bank of palette group
-	ld H, D
+	ld H, C
 	ld L, E ; HL = CE
 	ld D, $2f
 	ld [DE], A ; set palette group bank
@@ -409,7 +410,8 @@ vblank_start_padding = CYC_PREPARE_VOLUMES + line_spare + 6 - (CYC_PREPARE_VOLUM
 	; NOTE: if in final version we can drop above costs so this wait is 18c, then rearrange above
 	; so A = 0 as final value, then we can DMA 1 here.
 vblank_into_loop_padding = (((114 - CYC_UPDATE_SAMPLE_VBLANK) - 4) - CYC_DETERMINE_FRAME) - 20 ; 20 is for initial values setup
-	Wait vblank_into_loop_padding
+	; +2 because we're wrong somewhere and easier to fix than debug. magic cycles!
+	Wait vblank_into_loop_padding + 2
 	PRINTT "Padding for {vblank_into_loop_padding} before loop. If this is >=$12, we can fit a DMA here.\n"
 
 	; Some calculations for this loop
@@ -542,8 +544,8 @@ n = n + 1
 	LoadFrameMisc
 	; Note we now switch back to line loop versions of audio macros
 
-	; 7 for bank setting, 4 for volume update, 2 for setting C
-vblank_palette_copy_cycles = 114 - (CYC_UPDATE_SAMPLE_VBLANK + 7 + CYC_LOAD_FRAME_MISC + 4 + 2)
+	; 7 for bank setting, 4 for volume update, 2 for setting C, 4 because magic i don't have time to debug
+vblank_palette_copy_cycles = 114 - (CYC_UPDATE_SAMPLE_VBLANK + 7 + CYC_LOAD_FRAME_MISC + 4 + 2 + 4)
 vblank_palette_loops = vblank_palette_copy_cycles / 4
 vblank_palette_padding = vblank_palette_copy_cycles % 4
 	PRINTT "VBlank palette loop: {vblank_palette_loops} + {vblank_palette_padding} padding\n"
@@ -607,7 +609,7 @@ Play::
 ppu_to_vblank = 228 * 144
 entry_time_before_vblank = (190 - padding) + 4 ; extra 4 from jump
 ppu_to_vblank_entry = ppu_to_vblank - entry_time_before_vblank
-audio_to_vblank_entry = 144 - (CYC_PREPARE_VOLUMES + line_spare + 6 + 4) ; extra 4 from the jump
+audio_to_vblank_entry = 114 - (CYC_PREPARE_VOLUMES + line_spare + 6 + 4 + 1) ; extra 4 from the jump, 1 from magic
 
 	; we want to begin audio playback 144 cycles before vblank expects first audio switch
 	WaitLong ppu_to_vblank_entry + (-(audio_to_vblank_entry + 8)) ; 8 from setting sound playing 

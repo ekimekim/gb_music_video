@@ -252,6 +252,7 @@ CGBVRAMBank EQU $ff4f
 ; way to check for this.
 ; After each DMA, source and dest fields are updated to their values + the amount copied.
 ; In the case of dest, the ignored top 3 bits are reset.
+; NOTE: Source (and dest?) regs cannot be read from, they always return ff.
 CGBDMASourceHi EQU $ff51
 CGBDMASourceLo EQU $ff52
 CGBDMADestHi EQU $ff53

@@ -96,9 +96,9 @@ InitHRAM:
 	ld A, BANK_FRAME_LIST
 	ld [FrameListBank], A
 	ld A, $40
-	ld [AudioAddr], A
+	ld [AudioAddr+1], A
 	ld [FrameListAddr], A
 	xor A
-	ld [AudioAddr+1], A ; Addr = $4000
+	ld [AudioAddr], A ; Addr = $4000
 	ld [FrameListAddr+1], A ; Addr = $4000
 	ret
