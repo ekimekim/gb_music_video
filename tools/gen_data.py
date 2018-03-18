@@ -15,9 +15,13 @@ def values_to_asm(section, first_bank, values):
 	return '\n'.join(lines) + '\n'
 
 
-def write_asm(filename, items, first_bank, encode, *args):
+def write_asm(filename, items, first_bank, encode, *args, **kwargs):
+	terminator = kwargs.pop('terminator', [])
+	if kwargs:
+		raise TypeError("unexpected kwargs")
 	values = [encode(item, *args) for item in items]
 	values = sum(values, []) # flatten
+	values += terminator
 	values = values_to_asm(filename, first_bank, values)
 	with open("data/{}.asm".format(filename), 'w') as f:
 		f.write(values)
@@ -53,7 +57,7 @@ def main():
 	write_asm('textures', textures, texture_bank, encode_texture)
 	write_asm('palette_changes', palette_changes, pc_bank, encode_palette_change, pg_bank)
 	write_asm('frames', frames, frame_bank, encode_frame, pg_bank)
-	write_asm('frame_order', frame_order, frame_order_bank, encode_frame_order_item, frame_bank, pc_bank)
+	write_asm('frame_order', frame_order, frame_order_bank, encode_frame_order_item, frame_bank, pc_bank, terminator=[0])
 
 	with open('include/banks.asm', 'w') as f:
 		banks = [

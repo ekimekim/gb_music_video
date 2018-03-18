@@ -104,6 +104,8 @@ frame order list:
 	They are followed by the same index again, but this time encoded as bank and addr of
 	the palette change list:
 		00bbbbbb 01bbaaa0
+	The list is terminated by a 0 (note that frame index banks can't be 0 as that's for code),
+	which when encountered will end the program.
 
 Bank locations:
 	Audio data, palette change list and palette groups must be in *high banks* 256-511.

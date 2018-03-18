@@ -269,7 +269,7 @@ ENDM
 ; Sets D up for bank loading.
 ; Sets PaletteChangeBank and PaletteChangeAddr.
 ; Can't clobber B. Clobbers C.
-CYC_DETERMINE_FRAME EQU 60
+CYC_DETERMINE_FRAME EQU 64
 DetermineFrame: MACRO
 	ld D, $30
 	xor A
@@ -283,7 +283,9 @@ DetermineFrame: MACRO
 	ld H, A
 	ld A, [FrameListAddr + 1]
 	ld L, A ; HL = frame list addr
-	ld A, [HL+]
+	ld A, [HL+] ; load frame bank
+	xor A ; set z if bank is 0, as this indicates end of the program
+	jp z, .end
 	ld E, A ; first byte is bank
 	ld A, [HL+]
 	ld [CGBDMASourceHi], A ; second byte is address upper byte
@@ -642,3 +644,8 @@ n = n + 1
 	ENDR
 	_UpdateSampleExtra $B
 	_DetermineFrameExtra
+
+.end
+	xor A
+	ld [SoundControl], A ; turn off sound
+	jp HaltForever
