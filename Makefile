@@ -19,7 +19,7 @@ all: build/release/rom.gb tests/.uptodate
 data/audio.asm: tools/process_audio tools/quantize_audio.py $(AUDIO) data
 	tools/process_audio $(AUDIO)
 
-include/banks.asm: tools/gen_data.py data
+include/banks.asm: tools/gen_data.py tools/process_image.py data
 	python tools/gen_data.py
 
 build/debug/%.o: %.asm $(INCLUDES) build/debug build/debug/data

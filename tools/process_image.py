@@ -13,6 +13,18 @@ COLORS = {
 	"pink": (215, 123, 186),
 }
 
+GB_COLORS = {
+	'blue': (11, 9, 31),
+	'brown': (14, 8, 4),
+	'pink': (29, 13, 23),
+	'black': (4, 3, 8),
+	'purple': (16, 4, 20),
+	'cyan': (9, 24, 31),
+	'white': (31, 31, 31),
+	'grey': (19, 21, 24),
+	'yellow': (31, 31, 0),
+}
+
 PALETTES = {
 	"back": ("black", "grey", "purple", "cyan"),
 	"cha_head": ("black", "grey", "yellow", "cyan"),
@@ -82,18 +94,18 @@ def main():
 	frame = {
 		'tiles': [
 			[
-				(r * 21 + c, False, False, p)
+				(r * 21 + c, False, True, p)
 			for c, (t, p) in enumerate(row)]
 		for r, row in enumerate(tex)],
 		'scroll': (0, 0),
 		'pg': 0,
 	}
-	palette_groups = [map(resolve, FRAME_PALETTES)] + [map(resolve, pg) for pg in PALETTES_BY_ROW]
+	palette_groups = [map(resolve_gb, FRAME_PALETTES)] + [map(resolve_gb, pg) for pg in PALETTES_BY_ROW]
 	textures = [t for row in tex for t, p in row]
 	palette_changes = [r + 1 for r in range(18) for x in range(8)]
-	static_palette = resolve("back")
+	static_palette = resolve_gb("back")
 	frame_order = [0] * (2 * 3600 + 43 * 60)
-	return palette_groups, textures, palette_changes, [frame], frame_order, static_palette
+	return palette_groups, textures, [palette_changes], [frame], frame_order, static_palette
 
 
 def get_tile(image, row, col):
@@ -104,6 +116,9 @@ def get_tile(image, row, col):
 
 def resolve(palette):
 	return [COLORS[color] for color in PALETTES[palette]]
+
+def resolve_gb(palette):
+	return [GB_COLORS[color] for color in PALETTES[palette]]
 
 
 def to_texture(tile, palette):

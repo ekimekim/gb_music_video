@@ -2,6 +2,8 @@
 import math
 import json
 
+import process_image
+
 
 ceil = lambda x: int(math.ceil(x))
 
@@ -152,51 +154,7 @@ def encode_static_palette(palette):
 
 def get_video_data():
 	"""Returns palette_groups, textures, palette_changes, frames, frame_order, static_palette"""
-	data = json.loads(open('data.json').read())
-	# hack: assume only one frame for now
-	frame, = data['Frames']
-	frame, palette_groups, palette_change_list = resolve_frame(frame)
-	static_palette = palette_groups[0][3] # first palette group is frame palettes, so 4th frame palette is static palette
-
-
-def resolve_frame(frame):
-	"""Resolve incoming frame struct with palette indexes into palette groups, palette changes and tiles.
-	Expects frame to be list of rows, rows are list of dict {texture, vflip, hflip, palettes: palette index list (one per line)}).
-	Outputs proper frame struct as expected by encode_frame().
-	"""
-	frame_palettes = frame['PopularPalettes']
-	palette_groups = [frame_palettes]
-	palette_change_list = []
-	for r, row in enumerate(frame['TileUpdates']):
-		print 'row', r
-		palette_slots = []
-		for t, tile in enumerate(row):
-			palettes = tile['Palettes']
-			if all(palettes[0] == p for p in palettes):
-				# all equal, candidate for frame palettes
-				if palettes[0] in frame_palettes:
-					tile['palette_number'] = 4 + frame_palettes.index(palettes[0])
-					continue
-			# no matching frame palette, check for existing line palettes
-			if palettes not in palette_slots:
-				palette_slots.append(palettes)
-				if len(palette_slots) > 4:
-					raise ValueError("Too many unique palette lists")
-			tile['palette_number'] = palette_slots.index(palettes)
-		palette_slots += [[0] * 8] * (4 - len(palette_slots))
-		assert len(palette_slots) == 4
-		for group in zip(*palette_slots):
-			if group not in palette_groups:
-				palette_groups.append(group)
-			palette_change_list.append(palette_groups.index(group))
-	frame = {
-		'tiles': [[
-			(tile['Texture'], tile['VerticalFlip'], tile['HorizontalFlip'], tile['palette_number'])
-		 for tile in row] for row in frame],
-		'scroll': (frame['xScroll'], frame['yScroll']),
-		'pg': 0,
-	}
-	return frame, palette_groups, palette_change_list
+	return process_image.main()
 
 
 if __name__ == "__main__":
