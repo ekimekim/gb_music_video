@@ -86,10 +86,11 @@ frame data:
 			This allows you to scroll up to just under one tile in either axis, exposing the
 			19th row or 21st column.
 		1 palette change, for the whole frame:
-			This sets the value of palettes 4-7 for the frame.
-			It refers to the 4 new palette values to write by specifying:
+			This sets the value of palettes 4-6 for the frame.
+			It refers to the 3 new palette values to write by specifying:
 				The palette group address, little-endian
 				The palette group bank
+			Note that the last palette in the palette group is ignored!
 		The remaining bytes up to 2048 are unused padding
 
 frame order list:
