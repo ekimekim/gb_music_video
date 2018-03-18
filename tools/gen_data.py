@@ -1,5 +1,6 @@
 
 import math
+import json
 
 
 ceil = lambda x: int(math.ceil(x))
@@ -151,25 +152,51 @@ def encode_static_palette(palette):
 
 def get_video_data():
 	"""Returns palette_groups, textures, palette_changes, frames, frame_order, static_palette"""
-	# test data
-	return (
-		# palette groups 0-31
-		[[[(x, 0, 0) for c in range(4)] for p in range(4)] for x in range(32)],
-		# textures 0-2
-		[[[(c+r+t) % 4 for c in range(8)] for r in range(8)] for t in range(3)],
-		# palette changes for frames 0-2
-		[[l % 32 for l in range(144)] for f in range(3)],
-		# frames 0-2
-		[{
-			'tiles': [[((r+c+f) % 3, r % 2, c % 2, (r+c+f) % 8) for c in range(21)] for r in range(19)],
-			'scroll': s,
-			'pg': f % 3,
-		} for f, s in enumerate([(0, 0), (4, 0), (0, 4)])],
-		# frame list: loop between 0, 1 and 2, then stay 1sec on each, then repeat 10 times.
-		([0, 1, 2] + [0] * 60 + [1] * 60 + [2] * 60) * 10,
-		# static palette: red green blue black
-		[(31, 0, 0), (0, 31, 0), (0, 0, 31), (31, 31, 31)],
-	)
+	data = json.loads(open('data.json').read())
+	# hack: assume only one frame for now
+	frame, = data['Frames']
+	frame, palette_groups, palette_change_list = resolve_frame(frame)
+	static_palette = palette_groups[0][3] # first palette group is frame palettes, so 4th frame palette is static palette
+
+
+def resolve_frame(frame):
+	"""Resolve incoming frame struct with palette indexes into palette groups, palette changes and tiles.
+	Expects frame to be list of rows, rows are list of dict {texture, vflip, hflip, palettes: palette index list (one per line)}).
+	Outputs proper frame struct as expected by encode_frame().
+	"""
+	frame_palettes = frame['PopularPalettes']
+	palette_groups = [frame_palettes]
+	palette_change_list = []
+	for r, row in enumerate(frame['TileUpdates']):
+		print 'row', r
+		palette_slots = []
+		for t, tile in enumerate(row):
+			palettes = tile['Palettes']
+			if all(palettes[0] == p for p in palettes):
+				# all equal, candidate for frame palettes
+				if palettes[0] in frame_palettes:
+					tile['palette_number'] = 4 + frame_palettes.index(palettes[0])
+					continue
+			# no matching frame palette, check for existing line palettes
+			if palettes not in palette_slots:
+				palette_slots.append(palettes)
+				if len(palette_slots) > 4:
+					raise ValueError("Too many unique palette lists")
+			tile['palette_number'] = palette_slots.index(palettes)
+		palette_slots += [[0] * 8] * (4 - len(palette_slots))
+		assert len(palette_slots) == 4
+		for group in zip(*palette_slots):
+			if group not in palette_groups:
+				palette_groups.append(group)
+			palette_change_list.append(palette_groups.index(group))
+	frame = {
+		'tiles': [[
+			(tile['Texture'], tile['VerticalFlip'], tile['HorizontalFlip'], tile['palette_number'])
+		 for tile in row] for row in frame],
+		'scroll': (frame['xScroll'], frame['yScroll']),
+		'pg': 0,
+	}
+	return frame, palette_groups, palette_change_list
 
 
 if __name__ == "__main__":
