@@ -27,26 +27,33 @@ PALETTES = {
 	"glass_bottom": ("black", "grey", "cyan", "white"),
 }
 
+FRAME_PALETTES = ["back", "chair_cloth", "table_edge", "back"]
+
 PALETTES_BY_ROW = [
-	["back"],
-	["back"],
-	["back"],
-	["cha_head", "back"],
-	["back", "cha_head", "sey_head"],
-	["back", "sey_head", "cha_head"],
-	["back", "sey_head", "cha_head"],
-	["back", "sey_head", "cha_head"],
-	["cha_neck", "back", "sey_neck", "sey_head"],
-	["chair_cloth", "back", "table_edge", "glass", "sey_neck"],
-	["back", "chair_cloth", "table_edge", "sey_neck"],
-	["chair_cloth", "table_edge", "glass", "hand", "sey_neck"],
-	["chair_cloth", "table_edge", "back", "hand", "table_top"],
-	["chair_cloth", "table_edge", "glass_bottom"],
-	["chair_cloth", "table_edge", "glass_bottom"],
-	["chair_cloth"],
-	["chair_cloth"],
-	["chair_cloth"],
+	[],
+	[],
+	[],
+	["cha_head"],
+	["cha_head", "sey_head"],
+	["sey_head", "cha_head"],
+	["sey_head", "cha_head"],
+	["sey_head", "cha_head"],
+	["cha_neck", "sey_neck", "sey_head"],
+	["glass", "sey_neck"],
+	["sey_neck"],
+	["glass", "hand", "sey_neck"],
+	["hand", "table_top"],
+	["glass_bottom"],
+	["glass_bottom"],
+	[],
+	[],
+	[],
 ]
+PALETTES_BY_ROW = [
+	pg + ["back"] * (4 - len(pg))
+	for pg in PALETTES_BY_ROW
+]
+
 
 def main():
 	image = Image.open('hams.png').convert('RGB')
@@ -56,19 +63,37 @@ def main():
 		row_tex = []
 		for col in range(20):
 			tile = get_tile(image, row, col)
-			for palette in palettes:
+			
+			for i, palette in enumerate(palettes + FRAME_PALETTES):
 				try:
 					texture = to_texture(tile, palette)
 				except ValueError:
 					pass
 				else:
+					pnum = i
 					break
 			else:
 				raise ValueError("Tile at {},{} has no matching palette out of {}: {}".format(row, col, palettes, tile))
-			row_tex.append((texture, palette))
+			row_tex.append((texture, pnum))
+		row_tex.append(row_tex[-1])
 		tex.append(row_tex)
+	tex.append(tex[-1])
 
-	print tex
+	frame = {
+		'tiles': [
+			[
+				(r * 21 + c, False, False, p)
+			for c, (t, p) in enumerate(row)]
+		for r, row in enumerate(tex)],
+		'scroll': (0, 0),
+		'pg': 0,
+	}
+	palette_groups = [map(resolve, FRAME_PALETTES)] + [map(resolve, pg) for pg in PALETTES_BY_ROW]
+	textures = [t for row in tex for t, p in row]
+	palette_changes = [r + 1 for r in range(18) for x in range(8)]
+	static_palette = resolve("back")
+	frame_order = [0] * (2 * 3600 + 43 * 60)
+	return palette_groups, textures, palette_changes, [frame], frame_order, static_palette
 
 
 def get_tile(image, row, col):
@@ -77,9 +102,12 @@ def get_tile(image, row, col):
 	for x in range(row * 8, (row+1) * 8)]
 
 
+def resolve(palette):
+	return [COLORS[color] for color in PALETTES[palette]]
+
+
 def to_texture(tile, palette):
-	palette = PALETTES[palette]
-	palette = [COLORS[color] for color in palette]
+	palette = resolve(palette)
 	return [
 		[palette.index(px) for px in row]
 	for row in tile]
