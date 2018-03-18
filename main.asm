@@ -1,6 +1,7 @@
 include "ioregs.asm"
 include "hram.asm"
 include "debug.asm"
+include "banks.asm"
 
 
 SECTION "Stack", WRAM0
@@ -61,7 +62,7 @@ LoadTiles:
 	xor A
 	ld [CGBVRAMBank], A ; vram bank 0
 
-	ld A, BANK_TILE_DATA
+	ld A, BANK_TEXTURES
 	ld [$2000], A ; load tile data bank
 
 	xor A
@@ -90,7 +91,7 @@ LoadTiles:
 
 
 InitHRAM:
-	ld A, BANK_AUDIO_DATA
+	ld A, LOW(BANK_AUDIO)
 	ld [AudioBank], A
 	ld A, BANK_FRAME_LIST
 	ld [FrameListBank], A

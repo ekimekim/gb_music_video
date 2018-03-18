@@ -65,7 +65,7 @@ def main():
 			('AUDIO', audio_bank),
 		]
 		for name, bank in banks:
-			f.write("\tBANK_{} EQU {}\n".format(name, bank))
+			f.write("BANK_{} EQU {}\n".format(name, bank))
 
 
 def encode_palette_group(pg):
@@ -73,7 +73,7 @@ def encode_palette_group(pg):
 	result = []
 	for palette in pg:
 		for r,g,b in palette:
-			value = r + g << 5 + b << 10
+			value = r + (g << 5) + (b << 10)
 			result += [value % 256, value / 256]
 	return result
 
@@ -93,7 +93,7 @@ def encode_palette_change(pc, pg_bank):
 	result = []
 	for pg_index in pc:
 		bank, addr = index_to_bank_addr(pg_bank, 32, pg_index)
-		result += [addr % 256, addr / 256, bank]
+		result += [addr % 256, addr / 256, bank % 256]
 	return pad(result, 512)
 
 
@@ -110,13 +110,13 @@ def encode_frame(frame, pg_bank):
 		row_b = []
 		for texture, vflip, hflip, palette in row:
 			row_a.append(texture % 256)
-			row_b.append(palette + (texture / 256) << 3 + hflip << 5 + vflip << 6)
+			row_b.append(palette + ((texture / 256) << 3) + (hflip << 5) + (vflip << 6))
 		rows_a += pad(row_a, 32)
 		rows_b += pad(row_b, 32)
 	result = rows_a + rows_b
 	result += list(frame['scroll'])
 	bank, addr = index_to_bank_addr(pg_bank, 32, frame['pg'])
-	result += [addr % 256, addr / 256, bank]
+	result += [addr % 256, addr / 256, bank % 256]
 	return pad(result, 2048)
 
 
@@ -125,7 +125,7 @@ def encode_frame_order_item(index, frame_bank, pc_bank):
 	frame_bank, frame_addr = index_to_bank_addr(frame_bank, 2048, index)
 	pc_bank, pc_addr = index_to_bank_addr(pc_bank, 512, index)
 	assert frame_addr % 256 == 0 and pc_addr % 256 == 0
-	return [frame_bank, frame_addr / 256, pc_bank, pc_addr / 256]
+	return [frame_bank, frame_addr / 256, pc_bank % 256, pc_addr / 256]
 
 
 def get_video_data():

@@ -3,7 +3,7 @@
 .SUFFIXES: .asm .o .gb
 .PHONY: bgb clean tests testroms debug
 
-GENERATED_ASM := audio_data.asm
+GENERATED_ASM := $(wildcard data/*.asm)
 ASMS := $(wildcard *.asm) $(GENERATED_ASM)
 OBJS := $(ASMS:.asm=.o)
 DEBUGOBJS := $(addprefix build/debug/,$(OBJS))
@@ -16,22 +16,16 @@ FIXARGS := -v -C -m 0x1a
 
 all: build/release/rom.gb tests/.uptodate
 
-tests/.uptodate: $(TESTS) tools/unit_test_gen.py $(DEBUGOBJS)
-	python tools/unit_test_gen.py .
-	touch "$@"
-
-testroms: tests/.uptodate
-
-tests: testroms
-	./runtests
-
-audio_data.asm: tools/process_audio tools/quantize_audio.py $(AUDIO)
+data/audio.asm: tools/process_audio tools/quantize_audio.py $(AUDIO) data
 	tools/process_audio $(AUDIO)
 
-build/debug/%.o: %.asm $(INCLUDES) build/debug
+include/banks.asm: tools/gen_data.py data
+	python tools/gen_data.py
+
+build/debug/%.o: %.asm $(INCLUDES) build/debug build/debug/data
 	rgbasm -DDEBUG=1 -i include/ -v -o $@ $<
 
-build/release/%.o: %.asm $(INCLUDES) build/release
+build/release/%.o: %.asm $(INCLUDES) build/release build/release/data
 	rgbasm -DDEBUG=0 -i include/ -v -o $@ $<
 
 build/debug/rom.gb: $(DEBUGOBJS)
@@ -43,7 +37,7 @@ build/release/rom.gb: $(RELEASEOBJS)
 	rgblink -n $(@:.gb=.sym) -o $@ $^
 	rgbfix -p 0 $(FIXARGS) $@
 
-build/debug build/release:
+build/debug build/release data build/debug/data build/release/data:
 	mkdir -p $@
 
 debug: build/debug/rom.gb

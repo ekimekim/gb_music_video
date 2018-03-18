@@ -40,7 +40,7 @@ def main(asm_path):
 		for n, ((x1, x2), (y1, y2)) in enumerate(zip(zip(xs[::2], xs[1::2]), zip(ys[::2], ys[1::2]))):
 			n = n * 2
 			if n % BANK_SIZE == 0:
-				f.write('SECTION "Audio data part {}", ROMX, BANK[AUDIO_BANK_START + {}]\n'.format(n, n/BANK_SIZE))
+				f.write('SECTION "Audio data part {}", ROMX, BANK[BANK_AUDIO + {}]\n'.format(n, n/BANK_SIZE))
 			# pair of volumes first, then pair of samples. in both cases first sample is most signifigant nibble
 			f.write("\tdb ${:x}{:x}\n".format(x1, x2))
 			f.write("\tdb ${:x}{:x}\n".format(y1, y2))
